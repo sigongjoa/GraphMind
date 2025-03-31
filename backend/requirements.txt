@@ -1,0 +1,6 @@
+# 백엔드 요구사항 파일: requirements.txt
+fastapi==0.95.0
+uvicorn==0.21.1
+sqlalchemy==2.0.7
+pydantic==1.10.7
+python-dateutil==2.8.2
