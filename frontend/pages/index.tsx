@@ -1,18 +1,42 @@
 // pages/index.tsx
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Head from 'next/head';
-import Dashboard from '../components/dashboard/Dashboard';
+import Header from '@/components/common/Header';
+import MainStats from '@/components/dashboard/MainStats';
+import LearningProgress from '@/components/dashboard/LearningProgress';
+import TodayReview from '@/components/dashboard/TodayReview';
+import RecentConcepts from '@/components/dashboard/RecentConcepts';
 
-export default function Home() {
+export default function DashboardPage() {
+  const [stats, setStats] = useState({
+    total: 0,
+    learned: 0,
+    reviewed: 0,
+  });
+
+  useEffect(() => {
+    // TODO: fetch real data
+    setStats({ total: 12, learned: 6, reviewed: 3 });
+  }, []);
+
   return (
     <>
       <Head>
         <title>개념 그래프 학습 시스템</title>
-        <meta name="description" content="개념 그래프 기반 자기 주도 학습 시스템" />
-        <link rel="icon" href="/favicon.ico" />
       </Head>
+      <Header />
+      <main className="max-w-7xl mx-auto px-4 py-6 space-y-8">
+        <h1 className="text-2xl font-bold mb-6">>대시보드</h1>
 
-      <Dashboard />
+        <MainStats stats={stats} />
+
+        <LearningProgress />
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <TodayReview />
+          <RecentConcepts />
+        </div>
+      </main>
     </>
   );
 }

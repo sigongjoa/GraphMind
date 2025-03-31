@@ -1,56 +1,25 @@
+// components/dashboard/RecentConcepts.tsx
 import React from 'react';
-import Link from 'next/link';
-import Card from '../common/Card';
 
-interface RecentConceptsProps {
-  concepts: any[];
-}
-
-const RecentConcepts: React.FC<RecentConceptsProps> = ({ concepts }) => {
-  if (concepts.length === 0) {
-    return (
-      <div className="text-center py-6">
-        <p className="text-gray-600">아직 학습한 개념이 없습니다.</p>
-      </div>
-    );
-  }
+const RecentConcepts = () => {
+  const recentConcepts = [
+    { id: 1, name: '소프트웨어 공학', description: '소프트웨어의 생명주기 전반을 다루는 학문' },
+    { id: 2, name: '유지보수', description: '인도된 소프트웨어의 결함 수정 및 환경 적응 과정' },
+    { id: 3, name: '요구사항 분석', description: '해결해야 할 문제를 정의하고 문서화하는 과정' },
+    { id: 4, name: '집합론', description: '집합 개념과 그 연산을 연구하는 수학 분야' },
+  ];
 
   return (
-    <div className="space-y-4">
-      {concepts.map((concept) => (
-        <Link key={concept.id} href={`/concept/${concept.id}`}>
-          <a className="block">
-            <Card className="hover:shadow-md transition-shadow">
-              <h3 className="font-medium text-lg mb-1">{concept.name}</h3>
-              <p className="text-gray-600 text-sm line-clamp-2">
-                {concept.description}
-              </p>
-              <div className="flex justify-between items-center mt-2 text-xs text-gray-500">
-                <span>
-                  {new Date(concept.created_at).toLocaleDateString('ko-KR')}
-                </span>
-                <span className="flex items-center">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-4 w-4 mr-1"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5l7 7-7 7"
-                    />
-                  </svg>
-                  자세히 보기
-                </span>
-              </div>
-            </Card>
-          </a>
-        </Link>
-      ))}
+    <div className="bg-white rounded-xl shadow p-6">
+      <h2 className="text-lg font-semibold text-gray-800 mb-4">최근 학습한 개념</h2>
+      <ul className="space-y-3">
+        {recentConcepts.map((concept) => (
+          <li key={concept.id} className="border rounded p-4 hover:bg-gray-50">
+            <p className="font-medium text-blue-700">{concept.name}</p>
+            <p className="text-sm text-gray-600">{concept.description}</p>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 };
