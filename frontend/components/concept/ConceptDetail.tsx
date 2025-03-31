@@ -1,263 +1,202 @@
-// 개념 상세 컴포넌트: ConceptDetail.tsx
-import React, { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/router';
+import React, { useState, useEffect } from 'react';
 import Header from '../common/Header';
 import Card from '../common/Card';
 import Button from '../common/Button';
 import Loader from '../common/Loader';
+import ErrorBoundary from '../common/ErrorBoundary';
+import { conceptsApi, notesApi } from '../../api/client';
+import { useRouter } from 'next/router';
+import ReactMarkdown from 'react-markdown';
 
-interface ConceptDetailProps {
-  username?: string;
-}
-
-interface Concept {
-  id: number;
-  name: string;
-  description: string;
-}
-
-interface RelatedConcept {
-  id: number;
-  name: string;
-  relation: string;
-}
-
-interface LearningCard {
-  id: number;
-  question: string;
-  answer: string;
-  explanation?: string;
-}
-
-interface Note {
-  id: number;
-  title: string;
-  content: string;
-  createdAt: string;
-}
-
-const ConceptDetail: React.FC<ConceptDetailProps> = ({ username = '사용자' }) => {
+const ConceptDetail: React.FC = () => {
   const router = useRouter();
   const { id } = router.query;
-  
-  const [loading, setLoading] = useState(true);
-  const [concept, setConcept] = useState<Concept | null>(null);
-  const [relatedConcepts, setRelatedConcepts] = useState<RelatedConcept[]>([]);
-  const [cards, setCards] = useState<LearningCard[]>([]);
-  const [notes, setNotes] = useState<Note[]>([]);
+  const conceptId = typeof id === 'string' ? parseInt(id, 10) : undefined;
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [concept, setConcept] = useState<any>(null);
+  const [relatedConcepts, setRelatedConcepts] = useState<any[]>([]);
+  const [notes, setNotes] = useState<any[]>([]);
+  const [cards, setCards] = useState<any[]>([]);
+  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    if (!id) return;
+    if (!conceptId) return;
 
-    // 실제 구현에서는 API에서 데이터를 가져옵니다
     const fetchConceptData = async () => {
       try {
-        // API 호출 시뮬레이션
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        setIsLoading(true);
         
-        // 샘플 데이터
-        const conceptData: Concept = {
-          id: Number(id),
-          name: '소프트웨어 공학',
-          description: '소프트웨어 공학은 소프트웨어의 개발, 운용, 유지보수 등의 생명 주기 전반을 체계적이고 서술적이며 정량적으로 다루는 학문입니다. 고품질의 소프트웨어를 비용 효율적으로 개발하는 것을 목표로 합니다.'
-        };
-        
-        const relatedConceptsData: RelatedConcept[] = [
-          { id: 2, name: '요구사항 분석', relation: '하위 개념' },
-          { id: 3, name: '유지보수', relation: '하위 개념' },
-          { id: 4, name: '소프트웨어 테스팅', relation: '하위 개념' },
-          { id: 5, name: '소프트웨어 설계', relation: '하위 개념' }
-        ];
-        
-        const cardsData: LearningCard[] = [
-          {
-            id: 1,
-            question: '소프트웨어 공학의 주요 목표는 무엇인가?',
-            answer: '고품질의 소프트웨어를 비용 효율적으로 개발하는 것',
-            explanation: '소프트웨어 공학은 체계적이고 규율적인 접근 방식을 통해 신뢰성 있고 효율적인 소프트웨어를 개발하는 것을 목표로 합니다.'
-          },
-          {
-            id: 2,
-            question: '소프트웨어 개발 생명주기(SDLC)의 주요 단계를 나열하시오.',
-            answer: '요구사항 분석, 설계, 구현, 테스트, 배포, 유지보수',
-            explanation: '소프트웨어 개발 생명주기는 소프트웨어 개발 과정을 체계적으로 관리하기 위한 프레임워크입니다. 각 단계는 특정 활동과 산출물을 포함합니다.'
-          }
-        ];
-        
-        const notesData: Note[] = [
-          {
-            id: 1,
-            title: '소프트웨어 공학 핵심 개념 정리',
-            content: '# 소프트웨어 공학 핵심 개념\n\n## 정의\n소프트웨어 공학은 소프트웨어의 개발, 운용, 유지보수 등의 생명 주기 전반을 체계적이고 서술적이며 정량적으로 다루는 학문입니다.\n\n## 주요 목표\n- 고품질의 소프트웨어를 비용 효율적으로 개발\n- 사용자 요구사항 충족\n- 유지보수 용이성 확보',
-            createdAt: '2025-03-30'
-          }
-        ];
-        
+        // 개념 상세 정보 가져오기
+        const conceptData = await conceptsApi.getById(conceptId);
         setConcept(conceptData);
-        setRelatedConcepts(relatedConceptsData);
-        setCards(cardsData);
+        
+        // 관련 개념 설정
+        setRelatedConcepts(conceptData.related_concepts || []);
+        
+        // 노트 가져오기
+        const notesData = await notesApi.getAll(conceptId);
         setNotes(notesData);
-        setLoading(false);
-      } catch (error) {
-        console.error('개념 데이터 로딩 실패:', error);
-        setLoading(false);
+        
+        // 카드 가져오기 (실제 구현에서는 cardsApi.getAll(conceptId) 사용)
+        setCards([]);
+        
+        setError(null);
+      } catch (err) {
+        console.error('개념 상세 정보 로딩 중 오류 발생:', err);
+        setError(err instanceof Error ? err : new Error('알 수 없는 오류가 발생했습니다'));
+      } finally {
+        setIsLoading(false);
       }
     };
 
     fetchConceptData();
-  }, [id]);
+  }, [conceptId]);
 
-  if (loading || !concept) {
+  if (error) {
     return (
       <div className="min-h-screen bg-background">
-        <Header username={username} />
-        <div className="flex items-center justify-center h-[calc(100vh-64px)]">
-          <Loader size="lg" text="개념 데이터를 불러오는 중..." />
-        </div>
+        <Header />
+        <main className="container mx-auto px-4 py-8">
+          <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
+            <h2 className="text-lg font-medium text-red-800 mb-2">오류가 발생했습니다</h2>
+            <p className="text-sm text-red-700">{error.message}</p>
+            <Button 
+              variant="outline"
+              className="mt-2"
+              onClick={() => window.location.reload()}
+            >
+              새로고침
+            </Button>
+          </div>
+        </main>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-background">
-      <Header username={username} />
-      
-      <main className="container mx-auto px-4 py-6">
-        <div className="mb-6">
-          <Link href="/graph">
-            <a className="flex items-center text-primary hover:text-primary-dark">
-              <svg className="h-5 w-5 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
-              </svg>
-              그래프로 돌아가기
-            </a>
-          </Link>
-        </div>
-        
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <div className="flex justify-between items-start mb-4">
-            <h1 className="text-2xl font-bold text-gray-800">개념: {concept.name}</h1>
-            <div className="flex space-x-2">
-              <Button variant="outline" size="sm">
-                <svg className="h-4 w-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                </svg>
-                편집
-              </Button>
-              <Button variant="outline" size="sm" className="text-error hover:bg-error hover:text-white">
-                <svg className="h-4 w-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                </svg>
-                삭제
-              </Button>
+      <Header />
+      <main className="container mx-auto px-4 py-8">
+        {isLoading ? (
+          <div className="flex justify-center items-center h-64">
+            <Loader size="lg" />
+          </div>
+        ) : (
+          <>
+            <div className="flex justify-between items-center mb-6">
+              <h1 className="text-2xl font-bold">{concept?.name}</h1>
+              <div className="flex space-x-2">
+                <Button 
+                  variant="outline"
+                  onClick={() => router.push(`/learning/${conceptId}`)}
+                >
+                  학습하기
+                </Button>
+                <Button 
+                  onClick={() => router.push(`/concept/${conceptId}/notes/new`)}
+                >
+                  노트 작성
+                </Button>
+              </div>
             </div>
-          </div>
-          
-          <div className="mb-6">
-            <h2 className="text-lg font-medium text-gray-800 mb-2">설명:</h2>
-            <p className="text-gray-700">{concept.description}</p>
-          </div>
-          
-          <div className="mb-6">
-            <h2 className="text-lg font-medium text-gray-800 mb-3">관련 개념:</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-              {relatedConcepts.map((related) => (
-                <Link key={related.id} href={`/concept/${related.id}`}>
-                  <a>
-                    <Card hoverable className="h-full">
-                      <div className="flex flex-col h-full">
-                        <h3 className="text-md font-medium text-gray-800 mb-1">{related.name}</h3>
-                        <p className="text-xs text-gray-500 mb-2">[관계: {related.relation}]</p>
-                        <Button size="sm" variant="text" className="mt-auto">이동</Button>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                <Card className="mb-6">
+                  <h2 className="text-lg font-medium mb-2">개념 설명</h2>
+                  <div className="prose max-w-none">
+                    <ReactMarkdown>{concept?.description || ''}</ReactMarkdown>
+                  </div>
+                </Card>
+                
+                <ErrorBoundary>
+                  <Card className="mb-6" title="학습 카드">
+                    {cards.length > 0 ? (
+                      <div className="space-y-4">
+                        {cards.map((card) => (
+                          <div key={card.id} className="border border-gray-200 rounded-md p-4">
+                            <p className="font-medium mb-2">{card.question}</p>
+                            <div className="text-sm text-gray-600">
+                              <p>정답: {card.answer}</p>
+                              {card.explanation && <p className="mt-1">해설: {card.explanation}</p>}
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    </Card>
-                  </a>
-                </Link>
-              ))}
-            </div>
-          </div>
-          
-          <div className="mb-6">
-            <div className="flex justify-between items-center mb-3">
-              <h2 className="text-lg font-medium text-gray-800">학습 카드:</h2>
-              <Button size="sm" variant="outline">
-                <svg className="h-4 w-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
-                </svg>
-                새 카드 추가
-              </Button>
-            </div>
-            
-            {cards.map((card) => (
-              <div key={card.id} className="bg-gray-50 rounded-lg p-4 mb-4">
-                <div className="mb-2">
-                  <span className="font-medium text-gray-800">Q: </span>
-                  <span className="text-gray-700">{card.question}</span>
-                </div>
-                <div className="mb-2">
-                  <span className="font-medium text-gray-800">A: </span>
-                  <span className="text-gray-700">{card.answer}</span>
-                </div>
-                <div className="flex justify-end space-x-2">
-                  <Button size="sm" variant="text">상세보기</Button>
-                  <Button size="sm" variant="text">편집</Button>
-                </div>
+                    ) : (
+                      <p className="text-gray-500">아직 학습 카드가 없습니다.</p>
+                    )}
+                  </Card>
+                </ErrorBoundary>
+                
+                <ErrorBoundary>
+                  <Card title="노트">
+                    {notes.length > 0 ? (
+                      <div className="space-y-4">
+                        {notes.map((note) => (
+                          <div key={note.id} className="border border-gray-200 rounded-md p-4">
+                            <div className="flex justify-between items-center mb-2">
+                              <h3 className="font-medium">{note.title}</h3>
+                              <Button 
+                                variant="text" 
+                                size="sm"
+                                onClick={() => router.push(`/concept/${conceptId}/notes/${note.id}/edit`)}
+                              >
+                                편집
+                              </Button>
+                            </div>
+                            <div className="prose max-w-none text-sm">
+                              <ReactMarkdown>{note.content}</ReactMarkdown>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-2">
+                              {new Date(note.created_at).toLocaleDateString('ko-KR')}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-6">
+                        <p className="text-gray-600 mb-4">아직 노트가 없습니다.</p>
+                        <Button 
+                          variant="outline"
+                          onClick={() => router.push(`/concept/${conceptId}/notes/new`)}
+                        >
+                          노트 작성하기
+                        </Button>
+                      </div>
+                    )}
+                  </Card>
+                </ErrorBoundary>
               </div>
-            ))}
-          </div>
-          
-          <div>
-            <div className="flex justify-between items-center mb-3">
-              <h2 className="text-lg font-medium text-gray-800">내 노트:</h2>
-              <Link href={`/concept/${concept.id}/notes/new`}>
-                <a>
-                  <Button size="sm" variant="outline">
-                    <svg className="h-4 w-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
-                    </svg>
-                    새 노트 작성
-                  </Button>
-                </a>
-              </Link>
-            </div>
-            
-            {notes.map((note) => (
-              <div key={note.id} className="bg-gray-50 rounded-lg p-4 mb-4">
-                <div className="mb-2">
-                  <h3 className="font-medium text-gray-800">{note.title}</h3>
-                  <p className="text-xs text-gray-500">작성일: {note.createdAt}</p>
-                </div>
-                <div className="flex justify-end space-x-2">
-                  <Link href={`/concept/${concept.id}/notes/${note.id}`}>
-                    <a>
-                      <Button size="sm" variant="text">상세보기</Button>
-                    </a>
-                  </Link>
-                  <Link href={`/concept/${concept.id}/notes/${note.id}/edit`}>
-                    <a>
-                      <Button size="sm" variant="text">편집</Button>
-                    </a>
-                  </Link>
-                </div>
+              
+              <div>
+                <Card title="관련 개념" className="mb-6">
+                  {relatedConcepts.length > 0 ? (
+                    <ul className="space-y-2">
+                      {relatedConcepts.map((relatedConcept) => (
+                        <li 
+                          key={relatedConcept.id} 
+                          className="border-l-4 border-primary pl-3 py-1 cursor-pointer hover:bg-gray-50"
+                          onClick={() => router.push(`/concept/${relatedConcept.id}`)}
+                        >
+                          <p className="font-medium">{relatedConcept.name}</p>
+                          <p className="text-xs text-gray-600">{relatedConcept.relation}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-gray-500">관련 개념이 없습니다.</p>
+                  )}
+                </Card>
+                
+                <Card title="학습 이력">
+                  <p className="text-gray-500">아직 학습 이력이 없습니다.</p>
+                </Card>
               </div>
-            ))}
-          </div>
-        </div>
-        
-        <div className="flex space-x-4">
-          <Link href={`/learning/${concept.id}`}>
-            <a>
-              <Button>학습하기</Button>
-            </a>
-          </Link>
-          
-          <Link href={`/review?concept=${concept.id}`}>
-            <a>
-              <Button variant="outline">복습하기</Button>
-            </a>
-          </Link>
-        </div>
+            </div>
+          </>
+        )}
       </main>
     </div>
   );

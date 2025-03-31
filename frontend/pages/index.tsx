@@ -1,11 +1,11 @@
-// 프론트엔드 메인 페이지: index.tsx
+// pages/index.tsx
 import React from 'react';
 import Head from 'next/head';
 import Dashboard from '../components/dashboard/Dashboard';
 
 export default function Home() {
   return (
-    <div>
+    <>
       <Head>
         <title>개념 그래프 학습 시스템</title>
         <meta name="description" content="개념 그래프 기반 자기 주도 학습 시스템" />
@@ -13,6 +13,6 @@ export default function Home() {
       </Head>
 
       <Dashboard />
-    </div>
+    </>
   );
 }

@@ -1,33 +1,27 @@
-// 공통 컴포넌트: Card.tsx
-import React from 'react';
+import React, { ReactNode } from 'react';
 
 interface CardProps {
-  children: React.ReactNode;
   title?: string;
+  children: ReactNode;
+  footer?: ReactNode;
   className?: string;
-  footer?: React.ReactNode;
   onClick?: () => void;
-  hoverable?: boolean;
 }
 
-const Card: React.FC<CardProps> = ({
-  children,
-  title,
+const Card: React.FC<CardProps> = ({ 
+  title, 
+  children, 
+  footer, 
   className = '',
-  footer,
-  onClick,
-  hoverable = false
+  onClick
 }) => {
-  const hoverClass = hoverable ? 'hover:shadow-lg transition-shadow cursor-pointer' : '';
-  const clickProps = onClick ? { onClick } : {};
-  
   return (
     <div 
-      className={`bg-white rounded-lg shadow-md overflow-hidden ${hoverClass} ${className}`}
-      {...clickProps}
+      className={`bg-white rounded-lg shadow-md overflow-hidden ${className} ${onClick ? 'cursor-pointer hover:shadow-lg transition-shadow' : ''}`}
+      onClick={onClick}
     >
       {title && (
-        <div className="px-4 py-3 border-b border-gray-200">
+        <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
           <h3 className="text-lg font-medium text-gray-800">{title}</h3>
         </div>
       )}

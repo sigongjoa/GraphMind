@@ -1,48 +1,49 @@
-// 대시보드 컴포넌트: ReviewSchedule.tsx
 import React from 'react';
 import Link from 'next/link';
-import Card from '../common/Card';
 import Button from '../common/Button';
 
-interface DueCard {
-  id: number;
-  title: string;
-}
-
 interface ReviewScheduleProps {
-  dueCards: DueCard[];
+  dueReviews: any[];
 }
 
-const ReviewSchedule: React.FC<ReviewScheduleProps> = ({ dueCards }) => {
-  return (
-    <Card 
-      title="복습 예정 카드" 
-      footer={
+const ReviewSchedule: React.FC<ReviewScheduleProps> = ({ dueReviews }) => {
+  if (dueReviews.length === 0) {
+    return (
+      <div className="text-center py-6">
+        <p className="text-gray-600 mb-4">오늘 예정된 복습이 없습니다.</p>
         <Link href="/review">
           <a>
-            <Button variant="outline" size="sm" fullWidth>
-              복습 시작하기
-            </Button>
+            <Button variant="outline">복습 페이지로 이동</Button>
           </a>
         </Link>
-      }
-    >
-      <div className="space-y-2">
-        {dueCards.length > 0 ? (
-          dueCards.map((card) => (
-            <div 
-              key={card.id}
-              className="flex items-center p-2 hover:bg-gray-50 rounded-md"
-            >
-              <div className="h-2 w-2 rounded-full bg-primary mr-3"></div>
-              <span className="text-gray-700">{card.title}</span>
-            </div>
-          ))
-        ) : (
-          <p className="text-gray-500 text-center py-4">오늘 복습할 카드가 없습니다.</p>
-        )}
       </div>
-    </Card>
+    );
+  }
+
+  return (
+    <div>
+      <p className="text-gray-600 mb-4">오늘 복습할 카드: {dueReviews.length}개</p>
+      <ul className="space-y-2 mb-4">
+        {dueReviews.slice(0, 3).map((review: any) => (
+          <li key={review.id} className="border-l-4 border-secondary pl-3 py-1">
+            <p className="font-medium">{review.card?.question || '카드 정보 없음'}</p>
+            <p className="text-sm text-gray-600">
+              {review.card?.concept?.name || '개념 정보 없음'}
+            </p>
+          </li>
+        ))}
+        {dueReviews.length > 3 && (
+          <li className="text-sm text-gray-500 italic">
+            외 {dueReviews.length - 3}개 더...
+          </li>
+        )}
+      </ul>
+      <Link href="/review">
+        <a>
+          <Button className="w-full">복습 시작하기</Button>
+        </a>
+      </Link>
+    </div>
   );
 };
 
