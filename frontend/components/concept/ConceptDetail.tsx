@@ -4,7 +4,7 @@ import RelatedConcepts from './RelatedConcepts';
 import ConceptCards from './ConceptCards';
 import ConceptNotes from './ConceptNotes';
 
-const ConceptDetail: React.FC<{ concept: any }> = ({ concept }) => {
+const ConceptDetail: React.FC<{ concept: any }> = ({ concept = {} }) => {
   return (
     <div className="space-y-8">
       <ConceptInfo concept={concept} />
