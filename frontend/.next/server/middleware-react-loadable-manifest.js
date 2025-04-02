@@ -1,1 +1,1 @@
-self.__REACT_LOADABLE_MANIFEST={"graph.tsx -> @/components/GraphComponent":{"id":"graph.tsx -> @/components/GraphComponent","files":["static/chunks/components_GraphComponent_tsx.js"]}}
+self.__REACT_LOADABLE_MANIFEST={}

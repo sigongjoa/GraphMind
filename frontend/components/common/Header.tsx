@@ -34,8 +34,8 @@ const Header: React.FC = () => {
                 </Link>
               </li>
               <li>
-                <Link href="/graph">
-                  <a className={`px-3 py-2 rounded hover:bg-primary-dark ${isActive('/graph')}`}>
+                <Link href="/graph-management">
+                  <a className={`px-3 py-2 rounded hover:bg-primary-dark ${isActive('/graph-management')}`}>
                     개념 그래프
                   </a>
                 </Link>
@@ -44,6 +44,13 @@ const Header: React.FC = () => {
                 <Link href="/review">
                   <a className={`px-3 py-2 rounded hover:bg-primary-dark ${isActive('/review')}`}>
                     복습
+                  </a>
+                </Link>
+              </li>
+              <li>
+                <Link href="/stats">
+                  <a className={`px-3 py-2 rounded hover:bg-primary-dark ${isActive('/stats')}`}>
+                    통계
                   </a>
                 </Link>
               </li>
