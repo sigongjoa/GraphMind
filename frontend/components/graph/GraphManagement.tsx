@@ -540,14 +540,51 @@ const GraphManagement: React.FC = () => {
               <select
                 id="source-concept"
                 value={newLinkForm.source}
-                onChange={(e) => setNewLinkForm({...newLinkForm, source: e.target.value})}
+                onChange={(e) => setNewLinkForm({ ...newLinkForm, source: e.target.value })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                disabled
               >
-                <option value={newLinkForm.source}>
-                  {graphData.nodes.find((n: any) => n.id.toString() === newLinkForm.source)?.name || '선택된 개념'}
-                </option>
+                <option value="">출발 개념 선택</option>
+                {graphData.nodes.map((node: any) => (
+                  <option key={node.id} value={node.id}>
+                    {node.name}
+                  </option>
+                ))}
               </select>
+            </div>
+            <div>
+              <label htmlFor="target-concept" className="block text-sm font-medium text-gray-700 mb-1">
+                도착 개념
+              </label>
+              <select
+                id="target-concept"
+                value={newLinkForm.target}
+                onChange={(e) => setNewLinkForm({ ...newLinkForm, target: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                required
+              >
+                <option value="">도착 개념 선택</option>
+                {graphData.nodes
+                  .filter((node: any) => node.id.toString() !== newLinkForm.source) // 출발 개념 제외
+                  .map((node: any) => (
+                    <option key={node.id} value={node.id}>
+                      {node.name}
+                    </option>
+                  ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="relation" className="block text-sm font-medium text-gray-700 mb-1">
+                관계 설명
+              </label>
+              <input
+                type="text"
+                id="relation"
+                value={newLinkForm.relation}
+                onChange={(e) => setNewLinkForm({ ...newLinkForm, relation: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                placeholder="예: 관련 있음, 확장 개념 등"
+                required
+              />
             </div>
           </div>
           
@@ -562,7 +599,7 @@ const GraphManagement: React.FC = () => {
             <Button 
               type="submit"
               isLoading={isLoading}
-              disabled={!newLinkForm.relation}
+              disabled={!newLinkForm.source || !newLinkForm.target || !newLinkForm.relation}
             >
               추가
             </Button>
