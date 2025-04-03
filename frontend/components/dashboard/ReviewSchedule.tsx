@@ -1,50 +1,39 @@
 import React from 'react';
 import Link from 'next/link';
-import Button from '../common/Button';
+import Card from '../common/Card';
 
-interface ReviewScheduleProps {
-  dueReviews: any[];
+interface RecentConceptsProps {
+  concepts: any[];
 }
 
-const ReviewSchedule: React.FC<ReviewScheduleProps> = ({ dueReviews }) => {
-  if (dueReviews.length === 0) {
-    return (
-      <div className="text-center py-6">
-        <p className="text-gray-600 mb-4">오늘 예정된 복습이 없습니다.</p>
-        <Link href="/review">
-          <a>
-            <Button variant="outline">복습 페이지로 이동</Button>
-          </a>
-        </Link>
-      </div>
-    );
-  }
-
+const RecentConcepts: React.FC<RecentConceptsProps> = ({ concepts }) => {
   return (
     <div>
-      <p className="text-gray-600 mb-4">오늘 복습할 카드: {dueReviews.length}개</p>
-      <ul className="space-y-2 mb-4">
-        {dueReviews.slice(0, 3).map((review: any) => (
-          <li key={review.id} className="border-l-4 border-secondary pl-3 py-1">
-            <p className="font-medium">{review.card?.question || '카드 정보 없음'}</p>
-            <p className="text-sm text-gray-600">
-              {review.card?.concept?.name || '개념 정보 없음'}
-            </p>
-          </li>
-        ))}
-        {dueReviews.length > 3 && (
-          <li className="text-sm text-gray-500 italic">
-            외 {dueReviews.length - 3}개 더...
-          </li>
-        )}
-      </ul>
-      <Link href="/review">
-        <a>
-          <Button className="w-full">복습 시작하기</Button>
-        </a>
-      </Link>
+      <h2 className="text-xl font-bold mb-4">최근 개념</h2>
+      
+      {concepts.length === 0 ? (
+        <div className="bg-white rounded-xl shadow p-6 text-center">
+          <p className="text-gray-500 mb-4">아직 개념이 없습니다.</p>
+          <Link href="/graph">
+            <a className="text-blue-500 hover:underline">개념 그래프로 이동하여 첫 개념을 추가해보세요</a>
+          </Link>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {concepts.map((concept) => (
+            <Link href={`/concept/${concept.id}`} key={concept.id}>
+              <Card className="cursor-pointer hover:shadow-md transition-shadow">
+                <h3 className="text-lg font-medium text-primary mb-2">{concept.name}</h3>
+                <p className="text-sm text-gray-600 line-clamp-3">
+                  {concept.description || '설명 없음'}
+                </p>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
 
-export default ReviewSchedule;
+export default RecentConcepts;

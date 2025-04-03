@@ -8,9 +8,7 @@ export default function StatsPage() {
       <Head>
         <title>학습 통계 및 분석 - 개념 그래프 학습 시스템</title>
         <meta name="description" content="학습 성과 및 복습 효율성 분석" />
-        <link rel="icon" href="/favicon.ico" />
       </Head>
-
       <StatsDashboard />
     </>
   );

@@ -1,22 +1,26 @@
-// 프론트엔드 학습 모드 페이지: learning/[id].tsx
+// pages/graph.tsx - 개념 그래프 페이지
 import React from 'react';
 import Head from 'next/head';
-import { useRouter } from 'next/router';
-import LearningMode from '../../components/learning/LearningMode';
+import dynamic from 'next/dynamic';
+import Header from '@/components/common/Header';
 
-export default function LearningPage() {
-  const router = useRouter();
-  const { id } = router.query;
+// SSR 비활성화로 그래프 컴포넌트 임포트
+const ConceptGraph = dynamic(
+  () => import('@/components/graph/ConceptGraph'),
+  { ssr: false }
+);
 
+export default function GraphPage() {
   return (
-    <div>
+    <>
       <Head>
-        <title>학습 모드 - 개념 그래프 학습 시스템</title>
-        <meta name="description" content="LLM과 상호작용하며 개념 학습하기" />
-        <link rel="icon" href="/favicon.ico" />
+        <title>개념 그래프 - 개념 그래프 학습 시스템</title>
+        <meta name="description" content="개념 간 연결 관계를 그래프로 시각화" />
       </Head>
-
-      <LearningMode />
-    </div>
+      
+      <Header />
+      
+      <ConceptGraph />
+    </>
   );
 }

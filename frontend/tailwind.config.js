@@ -1,3 +1,4 @@
+// tailwind.config.js
 module.exports = {
   content: [
     "./pages/**/*.{js,ts,jsx,tsx}",
@@ -23,7 +24,39 @@ module.exports = {
           DEFAULT: '#E53E3E',
         }
       },
+      typography: {
+        DEFAULT: {
+          css: {
+            maxWidth: '65ch',
+            color: 'inherit',
+            a: {
+              color: '#4A6FA5',
+              '&:hover': {
+                color: '#3A5A8C',
+              },
+            },
+            h1: {
+              color: '#1A202C',
+            },
+            h2: {
+              color: '#1A202C',
+            },
+            h3: {
+              color: '#1A202C',
+            },
+            h4: {
+              color: '#1A202C',
+            },
+            strong: {
+              color: '#1A202C',
+            },
+          },
+        },
+      },
     },
   },
-  plugins: [],
+  plugins: [
+    require('@tailwindcss/typography'),
+    require('@tailwindcss/line-clamp'),
+  ],
 }
