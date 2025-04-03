@@ -1,36 +1,83 @@
+// frontend/api/client.ts
 import axios from 'axios';
 
-// ✅ /api 경로에 맞춰 수정
+// API 기본 설정
 const apiClient = axios.create({
   baseURL: 'http://localhost:8000/api',
   headers: {
     'Content-Type': 'application/json',
   },
+  // 타임아웃 설정
+  timeout: 10000,
 });
+
+// 에러 인터셉터 추가
+apiClient.interceptors.response.use(
+  response => response,
+  error => {
+    console.error('API 요청 오류:', error);
+    
+    // 사용자 친화적인 오류 메시지
+    if (error.code === 'ECONNABORTED') {
+      return Promise.reject(new Error('서버 응답 시간이 초과되었습니다. 다시 시도해 주세요.'));
+    }
+    
+    if (!error.response) {
+      return Promise.reject(new Error('서버에 연결할 수 없습니다. 네트워크 연결을 확인하세요.'));
+    }
+    
+    return Promise.reject(error);
+  }
+);
 
 // -----------------------
 // 개념 관련 API
 // -----------------------
 export const conceptsApi = {
   getAll: async () => {
-    const response = await apiClient.get('/concepts/');
-    return response.data;
+    try {
+      const response = await apiClient.get('/concepts/');
+      return response.data;
+    } catch (error) {
+      console.error('개념 목록 가져오기 실패:', error);
+      throw error;
+    }
   },
-  getById: async (id: number) => {
-    const response = await apiClient.get(`/concepts/${id}`);
-    return response.data;
+  getById: async (id) => {
+    try {
+      const response = await apiClient.get(`/concepts/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error(`개념 ID ${id} 가져오기 실패:`, error);
+      throw error;
+    }
   },
-  create: async (data: any) => {
-    const response = await apiClient.post('/concepts/', data);
-    return response.data;
+  create: async (data) => {
+    try {
+      const response = await apiClient.post('/concepts/', data);
+      return response.data;
+    } catch (error) {
+      console.error('개념 생성 실패:', error);
+      throw error;
+    }
   },
-  update: async (id: number, data: any) => {
-    const response = await apiClient.put(`/concepts/${id}`, data);
-    return response.data;
+  update: async (id, data) => {
+    try {
+      const response = await apiClient.put(`/concepts/${id}`, data);
+      return response.data;
+    } catch (error) {
+      console.error(`개념 ID ${id} 업데이트 실패:`, error);
+      throw error;
+    }
   },
-  delete: async (id: number) => {
-    const response = await apiClient.delete(`/concepts/${id}`);
-    return response.data;
+  delete: async (id) => {
+    try {
+      const response = await apiClient.delete(`/concepts/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error(`개념 ID ${id} 삭제 실패:`, error);
+      throw error;
+    }
   },
 };
 
@@ -39,16 +86,40 @@ export const conceptsApi = {
 // -----------------------
 export const connectionsApi = {
   getAll: async () => {
-    const response = await apiClient.get('/connections/');
-    return response.data;
+    try {
+      const response = await apiClient.get('/connections/');
+      return response.data;
+    } catch (error) {
+      console.error('연결 목록 가져오기 실패:', error);
+      throw error;
+    }
   },
-  create: async (data: any) => {
-    const response = await apiClient.post('/connections/', data);
-    return response.data;
+  getByConceptId: async (conceptId) => {
+    try {
+      const response = await apiClient.get(`/concepts/${conceptId}/connections`);
+      return response.data;
+    } catch (error) {
+      console.error(`개념 ID ${conceptId}의 연결 가져오기 실패:`, error);
+      throw error;
+    }
   },
-  delete: async (id: number) => {
-    const response = await apiClient.delete(`/connections/${id}`);
-    return response.data;
+  create: async (data) => {
+    try {
+      const response = await apiClient.post('/connections/', data);
+      return response.data;
+    } catch (error) {
+      console.error('연결 생성 실패:', error);
+      throw error;
+    }
+  },
+  delete: async (id) => {
+    try {
+      const response = await apiClient.delete(`/connections/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error(`연결 ID ${id} 삭제 실패:`, error);
+      throw error;
+    }
   },
 };
 
@@ -56,26 +127,51 @@ export const connectionsApi = {
 // 카드 관련 API
 // -----------------------
 export const cardsApi = {
-  getAll: async (conceptId?: number) => {
-    const url = conceptId ? `/cards/?concept_id=${conceptId}` : '/cards/';
-    const response = await apiClient.get(url);
-    return response.data;
+  getAll: async (conceptId) => {
+    try {
+      const url = conceptId ? `/cards/?concept_id=${conceptId}` : '/cards/';
+      const response = await apiClient.get(url);
+      return response.data;
+    } catch (error) {
+      console.error('카드 목록 가져오기 실패:', error);
+      throw error;
+    }
   },
-  getById: async (id: number) => {
-    const response = await apiClient.get(`/cards/${id}`);
-    return response.data;
+  getById: async (id) => {
+    try {
+      const response = await apiClient.get(`/cards/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error(`카드 ID ${id} 가져오기 실패:`, error);
+      throw error;
+    }
   },
-  create: async (data: any) => {
-    const response = await apiClient.post('/cards/', data);
-    return response.data;
+  create: async (data) => {
+    try {
+      const response = await apiClient.post('/cards/', data);
+      return response.data;
+    } catch (error) {
+      console.error('카드 생성 실패:', error);
+      throw error;
+    }
   },
-  update: async (id: number, data: any) => {
-    const response = await apiClient.put(`/cards/${id}`, data);
-    return response.data;
+  update: async (id, data) => {
+    try {
+      const response = await apiClient.put(`/cards/${id}`, data);
+      return response.data;
+    } catch (error) {
+      console.error(`카드 ID ${id} 업데이트 실패:`, error);
+      throw error;
+    }
   },
-  delete: async (id: number) => {
-    const response = await apiClient.delete(`/cards/${id}`);
-    return response.data;
+  delete: async (id) => {
+    try {
+      const response = await apiClient.delete(`/cards/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error(`카드 ID ${id} 삭제 실패:`, error);
+      throw error;
+    }
   },
 };
 
@@ -83,59 +179,75 @@ export const cardsApi = {
 // 복습 관련 API
 // -----------------------
 export const reviewsApi = {
-  getAll: async (cardId?: number) => {
-    const url = cardId ? `/reviews/?card_id=${cardId}` : '/reviews/';
-    const response = await apiClient.get(url);
-    return response.data;
+  getAll: async (cardId) => {
+    try {
+      const url = cardId ? `/reviews/?card_id=${cardId}` : '/reviews/';
+      const response = await apiClient.get(url);
+      return response.data;
+    } catch (error) {
+      console.error('복습 목록 가져오기 실패:', error);
+      throw error;
+    }
   },
-  create: async (data: any) => {
-    const response = await apiClient.post('/reviews/', data);
-    return response.data;
+  getDueReviews: async () => {
+    try {
+      const response = await apiClient.get('/reviews/due');
+      return response.data;
+    } catch (error) {
+      console.error('예정된 복습 목록 가져오기 실패:', error);
+      throw error;
+    }
   },
-};
-
-// -----------------------
-// 노트 관련 API
-// -----------------------
-export const notesApi = {
-  getAll: async (conceptId?: number) => {
-    const url = conceptId ? `/notes/?concept_id=${conceptId}` : '/notes/';
-    const response = await apiClient.get(url);
-    return response.data;
-  },
-  getById: async (id: number) => {
-    const response = await apiClient.get(`/notes/${id}`);
-    return response.data;
-  },
-  create: async (data: any) => {
-    const response = await apiClient.post('/notes/', data);
-    return response.data;
-  },
-  update: async (id: number, data: any) => {
-    const response = await apiClient.put(`/notes/${id}`, data);
-    return response.data;
-  },
-  delete: async (id: number) => {
-    const response = await apiClient.delete(`/notes/${id}`);
-    return response.data;
+  create: async (data) => {
+    try {
+      const response = await apiClient.post('/reviews/', data);
+      return response.data;
+    } catch (error) {
+      console.error('복습 생성 실패:', error);
+      throw error;
+    }
   },
 };
 
 // -----------------------
-// LLM 통합 API
+// 통계 관련 API
 // -----------------------
-export const llmApi = {
-  explainConcept: async (concept: string, context?: string) => {
-    const response = await apiClient.post('/llm/explain', { concept, context });
-    return response.data;
+export const statsApi = {
+  getLearningStats: async () => {
+    try {
+      const response = await apiClient.get('/stats/learning-stats');
+      return response.data;
+    } catch (error) {
+      console.error('학습 통계 가져오기 실패:', error);
+      throw error;
+    }
   },
-  generateQuestion: async (concept: string, context?: string) => {
-    const response = await apiClient.post('/llm/generate-question', { concept, context });
-    return response.data;
+  getConceptStats: async (conceptId) => {
+    try {
+      const response = await apiClient.get(`/stats/concept-stats/${conceptId}`);
+      return response.data;
+    } catch (error) {
+      console.error(`개념 ID ${conceptId} 통계 가져오기 실패:`, error);
+      throw error;
+    }
   },
-  suggestConcepts: async (concept: string, context?: string) => {
-    const response = await apiClient.post('/llm/suggest-concepts', { concept, context });
-    return response.data;
+  getReviewStats: async () => {
+    try {
+      const response = await apiClient.get('/stats/review-stats');
+      return response.data;
+    } catch (error) {
+      console.error('복습 통계 가져오기 실패:', error);
+      throw error;
+    }
+  },
+  getProgressStats: async () => {
+    try {
+      const response = await apiClient.get('/stats/progress-stats');
+      return response.data;
+    } catch (error) {
+      console.error('진행 상황 통계 가져오기 실패:', error);
+      throw error;
+    }
   },
 };
 

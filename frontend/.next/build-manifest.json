@@ -25,20 +25,10 @@
       "static/chunks/main.js",
       "static/chunks/pages/_error.js"
     ],
-    "/concept/[id]": [
-      "static/chunks/webpack.js",
-      "static/chunks/main.js",
-      "static/chunks/pages/concept/[id].js"
-    ],
     "/graph-management": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",
       "static/chunks/pages/graph-management.js"
-    ],
-    "/learning/[id]": [
-      "static/chunks/webpack.js",
-      "static/chunks/main.js",
-      "static/chunks/pages/learning/[id].js"
     ]
   },
   "ampFirstPages": []

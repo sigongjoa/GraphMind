@@ -1,3 +1,4 @@
+// frontend/components/review/ReviewMode.tsx
 import React, { useState, useEffect } from 'react';
 import Header from '../common/Header';
 import Card from '../common/Card';
@@ -6,7 +7,7 @@ import Loader from '../common/Loader';
 import ReviewCard from './ReviewCard';
 import DifficultyRating from './DifficultyRating';
 import ReviewProgress from './ReviewProgress';
-import { cardsApi, reviewsApi } from '../../api/client';
+import { cardsApi, reviewsApi, conceptsApi } from '../../api/client';
 
 const ReviewMode: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -15,40 +16,85 @@ const ReviewMode: React.FC = () => {
   const [isAnswerVisible, setIsAnswerVisible] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [isCompleted, setIsCompleted] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     const fetchDueCards = async () => {
       try {
         setIsLoading(true);
+        setError(null);
         
-        // 복습 예정인 카드 가져오기
-        const reviews = await reviewsApi.getAll();
+        // API에서 제공하는 경우 getDueReviews 메서드 사용
+        let reviews;
+        try {
+          reviews = await reviewsApi.getDueReviews();
+        } catch (e) {
+          console.warn('getDueReviews API를 사용할 수 없습니다. 대안 방법을 사용합니다.');
+          
+          // 모든 복습 데이터 가져오기
+          const allReviews = await reviewsApi.getAll();
+          
+          // 오늘 복습할 카드 필터링
+          const today = new Date();
+          reviews = allReviews.filter((review: any) => {
+            // next_review_date가 없는 경우 기본 포함
+            if (!review.next_review_date) return true;
+            
+            const reviewDate = new Date(review.next_review_date);
+            return reviewDate <= today;
+          });
+        }
         
-        // 오늘 복습할 카드 필터링
-        const today = new Date();
-        const dueReviews = reviews.filter((review: any) => {
-          const reviewDate = new Date(review.next_review_date);
-          return reviewDate <= today;
-        });
+        if (!reviews || reviews.length === 0) {
+          setDueCards([]);
+          setIsLoading(false);
+          return;
+        }
         
         // 카드 정보 가져오기
-        const cardPromises = dueReviews.map((review: any) => 
+        const cardPromises = reviews.map((review: any) => 
           cardsApi.getById(review.card_id)
+            .catch(err => {
+              console.warn(`카드 ID ${review.card_id} 가져오기 실패:`, err);
+              return null; // 실패한 카드는 null로 처리
+            })
         );
         
         const cards = await Promise.all(cardPromises);
-        setDueCards(cards);
-        setError(null);
+        const validCards = cards.filter(card => card !== null);
+        
+        // 개념 정보 포함하기
+        const cardsWithConcepts = await Promise.all(
+          validCards.map(async (card: any) => {
+            try {
+              const concept = await conceptsApi.getById(card.concept_id);
+              return { ...card, concept };
+            } catch (err) {
+              console.warn(`개념 ID ${card.concept_id} 가져오기 실패:`, err);
+              return card; // 개념 정보 없이 카드만 반환
+            }
+          })
+        );
+        
+        setDueCards(cardsWithConcepts);
       } catch (err) {
         console.error('복습 카드 로딩 중 오류 발생:', err);
-        setError(err instanceof Error ? err : new Error('알 수 없는 오류가 발생했습니다'));
+        setError(err instanceof Error ? err : new Error('복습 카드 로딩 중 오류가 발생했습니다'));
+        
+        // 자동 재시도 (최대 3회)
+        if (retryCount < 3) {
+          console.log(`데이터 로딩 재시도 중... (${retryCount + 1}/3)`);
+          setTimeout(() => {
+            setRetryCount(prev => prev + 1);
+          }, 2000); // 2초 후 재시도
+        }
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchDueCards();
-  }, []);
+  }, [retryCount]);
 
   const handleShowAnswer = () => {
     setIsAnswerVisible(true);
@@ -60,7 +106,6 @@ const ReviewMode: React.FC = () => {
     try {
       const currentCard = dueCards[currentCardIndex];
       
-      // 복습 기록 생성
       // SM-2 알고리즘에 따라 다음 복습 일정 계산
       const today = new Date();
       let nextReviewDate = new Date();
@@ -76,6 +121,7 @@ const ReviewMode: React.FC = () => {
         nextReviewDate.setDate(today.getDate() + 7);
       }
       
+      // 복습 기록 생성
       await reviewsApi.create({
         card_id: currentCard.id,
         difficulty,
@@ -92,7 +138,15 @@ const ReviewMode: React.FC = () => {
       }
     } catch (err) {
       console.error('복습 기록 저장 중 오류 발생:', err);
+      alert('복습 기록 저장 중 오류가 발생했습니다. 다시 시도해주세요.');
       setError(err instanceof Error ? err : new Error('복습 기록 저장 중 오류가 발생했습니다'));
+    } finally {
+      // 페이드 효과를 위한 지연
+      setTimeout(() => {
+        if (currentCardIndex >= dueCards.length - 1) {
+          setIsCompleted(true);
+        }
+      }, 300);
     }
   };
 
@@ -102,6 +156,10 @@ const ReviewMode: React.FC = () => {
     setIsCompleted(false);
   };
 
+  const handleRefresh = () => {
+    setRetryCount(0); // 재시도 카운트 초기화하여 데이터 다시 로드
+  };
+
   if (error) {
     return (
       <div className="min-h-screen bg-background">
@@ -109,13 +167,12 @@ const ReviewMode: React.FC = () => {
         <main className="container mx-auto px-4 py-8">
           <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
             <h2 className="text-lg font-medium text-red-800 mb-2">오류가 발생했습니다</h2>
-            <p className="text-sm text-red-700">{error.message}</p>
+            <p className="text-sm text-red-700 mb-4">{error.message}</p>
             <Button 
               variant="outline"
-              className="mt-2"
-              onClick={() => window.location.reload()}
+              onClick={handleRefresh}
             >
-              새로고침
+              다시 시도
             </Button>
           </div>
         </main>

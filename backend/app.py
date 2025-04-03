@@ -6,6 +6,7 @@ import models
 import schemas
 import crud
 from database import SessionLocal, engine
+from routers import statistics, reviews, connections
 
 # DB 테이블 생성
 models.Base.metadata.create_all(bind=engine)
@@ -181,5 +182,16 @@ def suggest_concepts(request: schemas.LLMRequest):
         ]
     }
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # 또는 ["http://localhost:3000"]
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # ✅ 라우터 등록 (prefix="/api")
 app.include_router(router, prefix="/api")
+app.include_router(connections.router, prefix="/api/connections")
+app.include_router(statistics.router, prefix="/api/stats")
+app.include_router(reviews.router, prefix="/api/reviews")

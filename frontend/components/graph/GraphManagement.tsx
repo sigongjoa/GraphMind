@@ -1,3 +1,5 @@
+// frontend/components/graph/GraphManagement.tsx
+console.log("✅ GraphManagement 컴포넌트 렌더링 시작");
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Header from '../common/Header';
@@ -22,18 +24,33 @@ const GraphManagement: React.FC = () => {
   const [newNodeForm, setNewNodeForm] = useState({ name: '', description: '' });
   const [newLinkForm, setNewLinkForm] = useState({ source: '', target: '', relation: '' });
   const [error, setError] = useState<Error | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   // 그래프 데이터 로드
   useEffect(() => {
+    console.log("🔥 useEffect 실행됨, retryCount:", retryCount);
     const fetchGraphData = async () => {
       try {
         setIsLoading(true);
+        setError(null);
         
         // 병렬로 데이터 가져오기
         const [concepts, connections] = await Promise.all([
           conceptsApi.getAll(),
           connectionsApi.getAll()
         ]);
+
+        console.log("✅ 개념 응답:", concepts);
+        console.log("✅ 연결 응답:", connections);
+        
+        // API 응답 유효성 검사
+        if (!Array.isArray(concepts)) {
+          throw new Error('개념 데이터가 올바른 형식이 아닙니다.');
+        }
+        
+        if (!Array.isArray(connections)) {
+          throw new Error('연결 데이터가 올바른 형식이 아닙니다.');
+        }
         
         // 그래프 데이터 형식으로 변환
         const nodes = concepts.map((concept: any) => ({
@@ -44,46 +61,82 @@ const GraphManagement: React.FC = () => {
           concept: concept
         }));
         
-        const links = connections.map((connection: any) => ({
-          id: `${connection.source_id}-${connection.target_id}`,
-          source: connection.source_id,
-          target: connection.target_id,
-          label: connection.relation,
-          relation: connection.relation,
-          value: connection.strength
-        }));
+        // 연결 데이터 검증 및 변환
+        const links = connections.map((connection: any) => {
+          // 유효한 연결인지 확인 (source_id와 target_id가 존재하는 노드인지)
+          const sourceExists = nodes.some((node: any) => node.id === connection.source_id);
+          const targetExists = nodes.some((node: any) => node.id === connection.target_id);
+          
+          if (!sourceExists || !targetExists) {
+            console.warn(`유효하지 않은 연결 건너뛰기: ${connection.id}`);
+            return null;
+          }
+          
+          return {
+            id: `${connection.source_id}-${connection.target_id}`,
+            source: connection.source_id,
+            target: connection.target_id,
+            label: connection.relation,
+            relation: connection.relation,
+            value: connection.strength || 1
+          };
+        }).filter(Boolean); // null 값 제거
         
         setGraphData({ nodes, links });
-        setError(null);
       } catch (err) {
         console.error('그래프 데이터 로딩 중 오류 발생:', err);
-        setError(err instanceof Error ? err : new Error('알 수 없는 오류가 발생했습니다'));
+        setError(err instanceof Error ? err : new Error('데이터를 불러오는 중 오류가 발생했습니다'));
+        
+        // 자동 재시도 로직 (최대 3회)
+        if (retryCount < 3) {
+          console.log(`데이터 로딩 재시도 중... (${retryCount + 1}/3)`);
+          setTimeout(() => {
+            setRetryCount(prev => prev + 1);
+          }, 2000); // 2초 후 재시도
+        }
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchGraphData();
-  }, []);
+  }, [retryCount]);
 
   // 노드 클릭 핸들러
   const handleNodeClick = useCallback((node: any) => {
+    console.log('노드 클릭됨:', node); // 추가적인 로깅
     setSelectedNode(node);
+    
+    // 여기서 modalType을 'nodeDetail'로 설정하여 패널 표시
+    setModalType('nodeDetail');
+    setIsModalOpen(true);
   }, []);
 
   // 노드 추가 핸들러
   const handleNodeAdd = useCallback((x: number, y: number) => {
+    console.log('새 노드 위치:', x, y);
     setModalType('addNode');
     setIsModalOpen(true);
-    // 위치 정보 저장 (나중에 노드 생성 시 사용)
   }, []);
 
   // 링크 추가 핸들러
   const handleLinkAdd = useCallback((source: any, target: any) => {
+    console.log('Link Add - Source:', source);
+    console.log('Link Add - Target:', target);
+  
+    // 노드 ID 안전하게 추출
+    const sourceId = source.id || source.concept?.id;
+    const targetId = target.id || target.concept?.id;
+  
+    if (!sourceId || !targetId) {
+      console.error('Invalid source or target node');
+      return;
+    }
+  
     setModalType('addLink');
     setNewLinkForm({
-      source: source.id.toString(),
-      target: target.id.toString(),
+      source: sourceId.toString(),
+      target: targetId.toString(),
       relation: ''
     });
     setIsModalOpen(true);
@@ -91,14 +144,18 @@ const GraphManagement: React.FC = () => {
 
   // 노드 드래그 종료 핸들러
   const handleNodeDragEnd = useCallback((node: any, x: number, y: number) => {
-    // 위치 정보 저장 (백엔드에 위치 업데이트)
-    console.log(`Node ${node.id} moved to position: x=${x}, y=${y}`);
-    // 실제 구현에서는 위치 정보를 백엔드에 저장
+    console.log(`노드 ${node.id} 이동: x=${x}, y=${y}`);
+    // 필요시 위치 정보 저장 로직 추가
   }, []);
 
   // 새 노드 생성 제출 핸들러
   const handleNewNodeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!newNodeForm.name.trim()) {
+      alert('개념 이름을 입력하세요.');
+      return;
+    }
     
     try {
       setIsLoading(true);
@@ -124,12 +181,15 @@ const GraphManagement: React.FC = () => {
         links: prevData.links
       }));
       
+      // 성공 메시지
+      alert('새 개념이 추가되었습니다.');
+      
       // 폼 초기화 및 모달 닫기
       setNewNodeForm({ name: '', description: '' });
       setIsModalOpen(false);
     } catch (err) {
       console.error('개념 생성 중 오류 발생:', err);
-      setError(err instanceof Error ? err : new Error('개념 생성 중 오류가 발생했습니다'));
+      alert('개념 생성 중 오류가 발생했습니다.');
     } finally {
       setIsLoading(false);
     }
@@ -138,6 +198,11 @@ const GraphManagement: React.FC = () => {
   // 새 링크 생성 제출 핸들러
   const handleNewLinkSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!newLinkForm.relation) {
+      alert('관계 유형을 선택하세요.');
+      return;
+    }
     
     try {
       setIsLoading(true);
@@ -166,19 +231,32 @@ const GraphManagement: React.FC = () => {
         ]
       }));
       
+      // 성공 메시지
+      alert('새 연결이 추가되었습니다.');
+      
       // 폼 초기화 및 모달 닫기
       setNewLinkForm({ source: '', target: '', relation: '' });
       setIsModalOpen(false);
     } catch (err) {
       console.error('연결 생성 중 오류 발생:', err);
-      setError(err instanceof Error ? err : new Error('연결 생성 중 오류가 발생했습니다'));
+      alert('연결 생성 중 오류가 발생했습니다.');
     } finally {
       setIsLoading(false);
     }
   };
 
+  // 새로고침 핸들러
+  const handleRefresh = () => {
+    setRetryCount(0); // 재시도 카운트 초기화하여 데이터 다시 로드
+  };
+
   return (
+    
     <div className="min-h-screen bg-background">
+          <h1>✅ 렌더링 OK - 상태 확인</h1>
+          <p>로딩 중: {String(isLoading)}</p>
+          <p>노드 수: {graphData.nodes.length}</p>
+          <p>링크 수: {graphData.links.length}</p>
       <Header />
       <main className="container mx-auto px-4 py-8">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 space-y-4 md:space-y-0">
@@ -247,13 +325,12 @@ const GraphManagement: React.FC = () => {
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
             <h2 className="text-lg font-medium text-red-800 mb-2">오류가 발생했습니다</h2>
-            <p className="text-sm text-red-700">{error.message}</p>
+            <p className="text-sm text-red-700 mb-4">{error.message}</p>
             <Button 
               variant="outline"
-              className="mt-2"
-              onClick={() => window.location.reload()}
+              onClick={handleRefresh}
             >
-              새로고침
+              다시 시도
             </Button>
           </div>
         )}
@@ -265,9 +342,24 @@ const GraphManagement: React.FC = () => {
               <div className="flex justify-center items-center h-[600px]">
                 <Loader size="lg" />
               </div>
+            ) : graphData.nodes.length === 0 ? (
+              <div className="flex flex-col justify-center items-center h-[600px] p-4 text-center">
+                <p className="text-lg text-gray-500 mb-4">개념 데이터가 없습니다.</p>
+                <Button onClick={() => {
+                  setModalType('addNode');
+                  setIsModalOpen(true);
+                }}>
+                  첫 개념 추가하기
+                </Button>
+              </div>
             ) : (
-              <ErrorBoundary>
-                <div className="h-[600px]">
+                <ErrorBoundary 
+                  fallback={
+                    <div className="text-red-500">
+                      그래프 시각화 중 오류가 발생했습니다.
+                    </div>
+                  }
+                >
                   <EnhancedGraphVisualization 
                     graphData={graphData}
                     onNodeClick={handleNodeClick}
@@ -279,8 +371,7 @@ const GraphManagement: React.FC = () => {
                     filter={filter}
                     searchTerm={searchTerm}
                   />
-                </div>
-              </ErrorBoundary>
+                </ErrorBoundary>
             )}
           </div>
           
@@ -297,15 +388,17 @@ const GraphManagement: React.FC = () => {
                   <h4 className="text-sm font-medium text-gray-500 mb-2">관련 개념</h4>
                   <ul className="space-y-1">
                     {graphData.links
-                      .filter((link: any) => 
-                        link.source === selectedNode.id || 
-                        link.target === selectedNode.id || 
-                        link.source.id === selectedNode.id ||
-                        link.target.id === selectedNode.id
-                      )
+                      .filter((link: any) => {
+                        const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+                        const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+                        return sourceId === selectedNode.id || targetId === selectedNode.id;
+                      })
                       .map((link: any) => {
-                        const isSource = link.source === selectedNode.id || (link.source.id && link.source.id === selectedNode.id);
-                        const connectedNodeId = isSource ? (link.target.id || link.target) : (link.source.id || link.source);
+                        const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+                        const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+                        
+                        const isSource = sourceId === selectedNode.id;
+                        const connectedNodeId = isSource ? targetId : sourceId;
                         const connectedNode = graphData.nodes.find((n: any) => n.id === connectedNodeId);
                         
                         return connectedNode ? (
@@ -319,12 +412,11 @@ const GraphManagement: React.FC = () => {
                       })
                     }
                     
-                    {graphData.links.filter((link: any) => 
-                      link.source === selectedNode.id || 
-                      link.target === selectedNode.id ||
-                      link.source.id === selectedNode.id ||
-                      link.target.id === selectedNode.id
-                    ).length === 0 && (
+                    {!graphData.links.some((link: any) => {
+                      const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+                      const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+                      return sourceId === selectedNode.id || targetId === selectedNode.id;
+                    }) && (
                       <li className="text-sm text-gray-500">관련 개념이 없습니다.</li>
                     )}
                   </ul>
@@ -434,43 +526,6 @@ const GraphManagement: React.FC = () => {
                 </option>
               </select>
             </div>
-            
-            <div>
-              <label htmlFor="target-concept" className="block text-sm font-medium text-gray-700 mb-1">
-                도착 개념
-              </label>
-              <select
-                id="target-concept"
-                value={newLinkForm.target}
-                onChange={(e) => setNewLinkForm({...newLinkForm, target: e.target.value})}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                disabled
-              >
-                <option value={newLinkForm.target}>
-                  {graphData.nodes.find((n: any) => n.id.toString() === newLinkForm.target)?.name || '선택된 개념'}
-                </option>
-              </select>
-            </div>
-            
-            <div>
-              <label htmlFor="relation-type" className="block text-sm font-medium text-gray-700 mb-1">
-                관계 유형
-              </label>
-              <select
-                id="relation-type"
-                value={newLinkForm.relation}
-                onChange={(e) => setNewLinkForm({...newLinkForm, relation: e.target.value})}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                required
-              >
-                <option value="" disabled>관계 유형 선택</option>
-                <option value="하위 개념">하위 개념</option>
-                <option value="상위 개념">상위 개념</option>
-                <option value="관련 개념">관련 개념</option>
-                <option value="선행 개념">선행 개념</option>
-                <option value="후행 개념">후행 개념</option>
-              </select>
-            </div>
           </div>
           
           <div className="mt-6 flex justify-end space-x-3">
@@ -490,6 +545,74 @@ const GraphManagement: React.FC = () => {
             </Button>
           </div>
         </form>
+      </Modal>
+      <Modal
+        isOpen={isModalOpen && modalType === 'nodeDetail'}
+        onClose={() => setIsModalOpen(false)}
+        title="개념 상세 정보"
+        size="lg"
+      >
+        {selectedNode && (
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-xl font-bold mb-2">{selectedNode.name}</h3>
+              <p className="text-gray-700">{selectedNode.concept?.description || '설명 없음'}</p>
+            </div>
+            
+            <div>
+              <h4 className="font-medium text-gray-700 mb-2">관련 개념</h4>
+              <ul className="space-y-2">
+                {graphData.links
+                  .filter((link: any) => {
+                    const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+                    const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+                    return sourceId === selectedNode.id || targetId === selectedNode.id;
+                  })
+                  .map((link: any) => {
+                    const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+                    const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+                    
+                    const isSource = sourceId === selectedNode.id;
+                    const connectedNodeId = isSource ? targetId : sourceId;
+                    const connectedNode = graphData.nodes.find((n: any) => n.id === connectedNodeId);
+                    
+                    return connectedNode ? (
+                      <li key={link.id} className="p-2 border rounded-md">
+                        <span className="font-medium">{connectedNode.name}</span>
+                        <span className="text-gray-500 text-sm ml-2">
+                          {isSource ? `→ ${link.relation || '연결됨'}` : `← ${link.relation || '연결됨'}`}
+                        </span>
+                      </li>
+                    ) : null;
+                  })
+                }
+                
+                {!graphData.links.some((link: any) => {
+                  const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+                  const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+                  return sourceId === selectedNode.id || targetId === selectedNode.id;
+                }) && (
+                  <li className="text-gray-500">관련 개념이 없습니다.</li>
+                )}
+              </ul>
+            </div>
+            
+            <div className="flex justify-end space-x-3 pt-4">
+              <Button 
+                variant="outline" 
+                onClick={() => setIsModalOpen(false)}
+              >
+                닫기
+              </Button>
+              <Button 
+                variant="primary" 
+                onClick={() => router.push(`/concept/${selectedNode.id}`)}
+              >
+                개념 페이지로 이동
+              </Button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );

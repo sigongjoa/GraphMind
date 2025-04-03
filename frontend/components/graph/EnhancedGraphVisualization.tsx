@@ -1,6 +1,12 @@
+// frontend/components/graph/EnhancedGraphVisualization.tsx
 import React, { useRef, useState, useEffect, useCallback } from 'react';
-import ForceGraph2D from 'react-force-graph-2d';
 import { useRouter } from 'next/router';
+import dynamic from 'next/dynamic';
+
+// 클라이언트 사이드에서만 로드하도록 동적 임포트 사용
+const ForceGraph2D = dynamic(() => import('react-force-graph-2d'), {
+  ssr: false
+});
 
 interface GraphNode {
   id: number | string;
@@ -14,8 +20,8 @@ interface GraphNode {
 
 interface GraphLink {
   id?: string;
-  source: number | string;
-  target: number | string;
+  source: number | string | GraphNode;
+  target: number | string | GraphNode;
   label?: string;
   value?: number;
   relation?: string;
@@ -35,6 +41,26 @@ interface EnhancedGraphVisualizationProps {
   filter?: string;
   searchTerm?: string;
 }
+
+const handleLinkAdd = useCallback((source: GraphNode, target: GraphNode) => {
+  // 안전한 ID 변환
+  const sourceId = typeof source.id === 'number' ? source.id : parseInt(source.id as string);
+  const targetId = typeof target.id === 'number' ? target.id : parseInt(target.id as string);
+
+  // 유효성 검사
+  if (isNaN(sourceId) || isNaN(targetId)) {
+    console.error('Invalid node IDs');
+    return;
+  }
+
+  // 링크 생성 로직
+  setNewLinkForm({
+    source: sourceId.toString(),
+    target: targetId.toString(),
+    relation: ''
+  });
+  setIsModalOpen(true);
+}, []);
 
 const EnhancedGraphVisualization: React.FC<EnhancedGraphVisualizationProps> = ({
   graphData,
@@ -56,6 +82,11 @@ const EnhancedGraphVisualization: React.FC<EnhancedGraphVisualizationProps> = ({
   const [linkSource, setLinkSource] = useState<GraphNode | null>(null);
   const [filteredData, setFilteredData] = useState(graphData);
   const router = useRouter();
+  
+  // 콘솔에 그래프 데이터 상태 출력 (디버깅용)
+  useEffect(() => {
+    console.log('Graph Data:', graphData);
+  }, [graphData]);
 
   // 필터링 및 검색어에 따른 그래프 데이터 필터링
   useEffect(() => {
@@ -72,10 +103,11 @@ const EnhancedGraphVisualization: React.FC<EnhancedGraphVisualizationProps> = ({
 
       // 필터링된 노드와 연결된 링크만 유지
       const nodeIds = new Set(nodes.map(node => node.id));
-      links = links.filter(link => 
-        nodeIds.has(typeof link.source === 'object' ? link.source.id : link.source) && 
-        nodeIds.has(typeof link.target === 'object' ? link.target.id : link.target)
-      );
+      links = links.filter(link => {
+        const sourceId = typeof link.source === 'object' ? (link.source as GraphNode).id : link.source;
+        const targetId = typeof link.target === 'object' ? (link.target as GraphNode).id : link.target;
+        return nodeIds.has(sourceId) && nodeIds.has(targetId);
+      });
     }
 
     // 필터 타입에 따른 필터링
@@ -89,8 +121,8 @@ const EnhancedGraphVisualization: React.FC<EnhancedGraphVisualizationProps> = ({
         connectedNodeIds.add(selectedNode.id);
         
         links.forEach(link => {
-          const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
-          const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+          const sourceId = typeof link.source === 'object' ? (link.source as GraphNode).id : link.source;
+          const targetId = typeof link.target === 'object' ? (link.target as GraphNode).id : link.target;
           
           if (sourceId === selectedNode.id) {
             connectedNodeIds.add(targetId);
@@ -102,8 +134,8 @@ const EnhancedGraphVisualization: React.FC<EnhancedGraphVisualizationProps> = ({
         
         nodes = nodes.filter(node => connectedNodeIds.has(node.id));
         links = links.filter(link => {
-          const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
-          const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+          const sourceId = typeof link.source === 'object' ? (link.source as GraphNode).id : link.source;
+          const targetId = typeof link.target === 'object' ? (link.target as GraphNode).id : link.target;
           return connectedNodeIds.has(sourceId) && connectedNodeIds.has(targetId);
         });
       }
@@ -112,24 +144,67 @@ const EnhancedGraphVisualization: React.FC<EnhancedGraphVisualizationProps> = ({
     setFilteredData({ nodes, links });
   }, [graphData, filter, searchTerm, selectedNode]);
 
+  // source와 target 객체 참조 확인 및 수정
+  useEffect(() => {
+    if (graphRef.current && filteredData.links.length > 0) {
+      // 노드 참조 문제 해결을 위한 그래프 재시작
+      if (graphRef.current.d3ReheatSimulation) {
+        graphRef.current.d3ReheatSimulation();
+      }
+    }
+  }, [filteredData]);
+
   // 레이아웃 타입에 따른 설정
   useEffect(() => {
-    if (!graphRef.current) return;
+    if (!graphRef.current || typeof window === 'undefined') return;
     
-    if (layoutType === 'force') {
-      graphRef.current.d3Force('charge').strength(-120);
-    } else if (layoutType === 'radial') {
-      // 방사형 레이아웃 설정
-      graphRef.current.d3Force('charge').strength(-300);
-      graphRef.current.d3Force('radial', d3.forceRadial(300));
-    } else if (layoutType === 'hierarchical') {
-      // 계층적 레이아웃 설정
-      graphRef.current.d3Force('link').distance(100);
-      graphRef.current.d3Force('charge').strength(-200);
+    // 기본 설정으로 초기화
+    if (graphRef.current.d3Force) {
+      const d3 = window.d3 || {};
+      
+      try {
+        graphRef.current.d3Force('charge').strength(-120);
+        graphRef.current.d3Force('link').distance(70);
+        
+        if (graphRef.current.d3Force('center')) {
+          graphRef.current.d3Force('center').strength(0.1);
+        }
+        
+        // 기존 radial force 제거 (존재하는 경우)
+        if (graphRef.current.d3Force('radial')) {
+          graphRef.current.d3Force('radial', null);
+        }
+        
+        if (layoutType === 'force') {
+          // 표준 force-directed 레이아웃 (기본값)
+          graphRef.current.d3Force('charge').strength(-120);
+        } else if (layoutType === 'radial') {
+          // 방사형 레이아웃 설정
+          try {
+            // d3-force 라이브러리 필요
+            if (d3.forceRadial && graphRef.current.d3Force) {
+              graphRef.current.d3Force('charge').strength(-300);
+              graphRef.current.d3Force('radial', d3.forceRadial(300));
+            } else {
+              console.warn('d3.forceRadial을 사용할 수 없습니다. 기본 레이아웃을 사용합니다.');
+            }
+          } catch (error) {
+            console.warn('방사형 레이아웃 설정 중 오류:', error);
+          }
+        } else if (layoutType === 'hierarchical') {
+          // 계층적 레이아웃 설정
+          graphRef.current.d3Force('link').distance(100);
+          graphRef.current.d3Force('charge').strength(-200);
+        }
+        
+        // 레이아웃 변경 시 그래프 재계산
+        if (graphRef.current.d3ReheatSimulation) {
+          graphRef.current.d3ReheatSimulation();
+        }
+      } catch (error) {
+        console.error('그래프 레이아웃 설정 중 오류:', error);
+      }
     }
-    
-    // 레이아웃 변경 시 그래프 재계산
-    graphRef.current.d3ReheatSimulation();
   }, [layoutType]);
 
   // 노드 클릭 핸들러
@@ -152,8 +227,8 @@ const EnhancedGraphVisualization: React.FC<EnhancedGraphVisualizationProps> = ({
     const connectedLinkIds = new Set<string>();
     
     graphData.links.forEach(link => {
-      const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
-      const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+      const sourceId = typeof link.source === 'object' ? (link.source as GraphNode).id : link.source;
+      const targetId = typeof link.target === 'object' ? (link.target as GraphNode).id : link.target;
       const linkId = `${sourceId}-${targetId}`;
       
       if (sourceId === node.id) {
@@ -183,6 +258,8 @@ const EnhancedGraphVisualization: React.FC<EnhancedGraphVisualizationProps> = ({
     
     event.preventDefault();
     
+    if (!graphRef.current) return;
+    
     const pos = graphRef.current.screen2GraphCoords(event.offsetX, event.offsetY);
     setContextMenuPos({ x: event.clientX, y: event.clientY });
   }, [editable]);
@@ -207,6 +284,8 @@ const EnhancedGraphVisualization: React.FC<EnhancedGraphVisualizationProps> = ({
 
   // 키보드 단축키 처리
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         // ESC 키로 링크 생성 취소
@@ -258,8 +337,8 @@ const EnhancedGraphVisualization: React.FC<EnhancedGraphVisualizationProps> = ({
 
   // 링크 색상 계산
   const getLinkColor = (link: GraphLink) => {
-    const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
-    const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+    const sourceId = typeof link.source === 'object' ? (link.source as GraphNode).id : link.source;
+    const targetId = typeof link.target === 'object' ? (link.target as GraphNode).id : link.target;
     const linkId = `${sourceId}-${targetId}`;
     
     if (highlightedLinks.has(linkId)) {
@@ -269,77 +348,82 @@ const EnhancedGraphVisualization: React.FC<EnhancedGraphVisualizationProps> = ({
     return '#cccccc'; // 기타 링크는 회색
   };
 
+  // 그래프 초기화 완료 후 실행할 작업
+  const onEngineStop = useCallback(() => {
+    console.log('그래프 렌더링 완료');
+  }, []);
+
   return (
     <div className="relative w-full h-full">
       {/* 그래프 시각화 */}
-      <ForceGraph2D
-        ref={graphRef}
-        graphData={filteredData}
-        nodeLabel={(node: GraphNode) => `${node.name}`}
-        nodeColor={getNodeColor}
-        nodeVal={getNodeSize}
-        linkLabel={(link: GraphLink) => link.label || link.relation || ''}
-        linkWidth={(link) => 1.5}
-        linkColor={getLinkColor}
-        linkDirectionalArrowLength={3}
-        linkDirectionalArrowRelPos={1}
-        linkDirectionalParticles={2}
-        linkDirectionalParticleWidth={1.5}
-        linkDirectionalParticleSpeed={0.005}
-        onNodeClick={handleNodeClick}
-        onNodeDragEnd={handleNodeDragEnd}
-        onBackgroundClick={handleCanvasClick}
-        onBackgroundRightClick={handleContextMenu}
-        nodeCanvasObject={(node, ctx, globalScale) => {
-          // 노드 렌더링 커스터마이징
-          const label = node.name;
-          const fontSize = 12 / globalScale;
-          const nodeColor = getNodeColor(node as GraphNode);
-          const nodeSize = getNodeSize(node as GraphNode);
-          
-          // 노드 원 그리기
-          ctx.beginPath();
-          ctx.fillStyle = nodeColor;
-          ctx.arc(node.x || 0, node.y || 0, nodeSize, 0, 2 * Math.PI);
-          ctx.fill();
-          
-          // 링크 생성 모드인 경우 소스 노드 표시
-          if (isCreatingLink && linkSource && node.id === linkSource.id) {
+      {typeof window !== 'undefined' && (
+        <ForceGraph2D
+          ref={graphRef}
+          graphData={filteredData}
+          nodeLabel={(node: GraphNode) => `${node.name}`}
+          nodeColor={getNodeColor}
+          nodeVal={getNodeSize}
+          linkLabel={(link: GraphLink) => link.label || link.relation || ''}
+          linkWidth={() => 1.5}
+          linkColor={getLinkColor}
+          linkDirectionalArrowLength={3}
+          linkDirectionalArrowRelPos={1}
+          linkDirectionalParticles={2}
+          linkDirectionalParticleWidth={1.5}
+          linkDirectionalParticleSpeed={0.005}
+          onNodeClick={handleNodeClick}
+          onNodeDragEnd={handleNodeDragEnd}
+          onBackgroundClick={handleCanvasClick}
+          onBackgroundRightClick={handleContextMenu}
+          cooldownTicks={100}
+          onEngineStop={onEngineStop}
+          nodeCanvasObject={(node: GraphNode, ctx, globalScale) => {
+            // 노드 렌더링 커스터마이징
+            const label = node.name;
+            const fontSize = 12 / globalScale;
+            const nodeColor = getNodeColor(node);
+            const nodeSize = getNodeSize(node);
+            
+            // 노드 원 그리기
             ctx.beginPath();
-            ctx.strokeStyle = '#ff0000';
-            ctx.lineWidth = 2 / globalScale;
-            ctx.arc(node.x || 0, node.y || 0, nodeSize + 2, 0, 2 * Math.PI);
-            ctx.stroke();
-          }
-          
-          // 노드 라벨 그리기
-          if (globalScale > 0.7 || node.id === selectedNode?.id || highlightedNodes.has(node.id)) {
-            ctx.font = `${fontSize}px Sans-Serif`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
+            ctx.fillStyle = nodeColor;
+            ctx.arc(node.x || 0, node.y || 0, nodeSize, 0, 2 * Math.PI);
+            ctx.fill();
             
-            // 라벨 배경
-            const textWidth = ctx.measureText(label).width;
-            const bckgDimensions = [textWidth, fontSize].map(n => n + fontSize * 0.2);
+            // 링크 생성 모드인 경우 소스 노드 표시
+            if (isCreatingLink && linkSource && node.id === linkSource.id) {
+              ctx.beginPath();
+              ctx.strokeStyle = '#ff0000';
+              ctx.lineWidth = 2 / globalScale;
+              ctx.arc(node.x || 0, node.y || 0, nodeSize + 2, 0, 2 * Math.PI);
+              ctx.stroke();
+            }
             
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-            ctx.fillRect(
-              (node.x || 0) - bckgDimensions[0] / 2,
-              (node.y || 0) + nodeSize + 2,
-              bckgDimensions[0],
-              bckgDimensions[1]
-            );
-            
-            // 라벨 텍스트
-            ctx.fillStyle = '#333333';
-            ctx.fillText(label, node.x || 0, (node.y || 0) + nodeSize + 2 + fontSize / 2);
-          }
-        }}
-        cooldownTicks={100}
-        onEngineStop={() => {
-          // 그래프 렌더링 완료 시 실행할 코드
-        }}
-      />
+            // 노드 라벨 그리기
+            if (globalScale > 0.7 || node.id === selectedNode?.id || highlightedNodes.has(node.id)) {
+              ctx.font = `${fontSize}px Sans-Serif`;
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'middle';
+              
+              // 라벨 배경
+              const textWidth = ctx.measureText(label).width;
+              const bckgDimensions = [textWidth, fontSize].map(n => n + fontSize * 0.2);
+              
+              ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+              ctx.fillRect(
+                (node.x || 0) - bckgDimensions[0] / 2,
+                (node.y || 0) + nodeSize + 2,
+                bckgDimensions[0],
+                bckgDimensions[1]
+              );
+              
+              // 라벨 텍스트
+              ctx.fillStyle = '#333333';
+              ctx.fillText(label, node.x || 0, (node.y || 0) + nodeSize + 2 + fontSize / 2);
+            }
+          }}
+        />
+      )}
       
       {/* 링크 생성 모드 표시 */}
       {isCreatingLink && (

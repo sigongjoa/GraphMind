@@ -15,3 +15,11 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # 모델 기본 클래스 생성
 Base = declarative_base()
+
+# 마지막 줄에 추가해줘
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

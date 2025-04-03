@@ -2,6 +2,6 @@
   "/_app": "pages/_app.js",
   "/_error": "pages/_error.js",
   "/_document": "pages/_document.js",
-  "/concept/[id]": "pages/concept/[id].js",
-  "/graph-management": "pages/graph-management.js"
+  "/graph-management": "pages/graph-management.js",
+  "/": "pages/index.js"
 }

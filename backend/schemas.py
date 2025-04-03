@@ -20,7 +20,7 @@ class Concept(ConceptBase):
     updated_at: Optional[datetime] = None
 
     class Config:
-        orm_mode = True
+        from_attributes= True
 
 # 개념 상세 정보 (관련 개념 포함)
 class RelatedConcept(BaseModel):
@@ -29,30 +29,34 @@ class RelatedConcept(BaseModel):
     relation: str
 
     class Config:
-        orm_mode = True
+        from_attributes= True
 
 class ConceptDetail(Concept):
     related_concepts: List[RelatedConcept] = []
 
     class Config:
-        orm_mode = True
+        from_attributes= True
 
 # 연결 스키마
 class ConnectionBase(BaseModel):
     source_id: int
     target_id: int
-    relation: str
-    strength: float = 1.0
+    relation: Optional[str] = None
+    strength: Optional[float] = 1.0
 
 class ConnectionCreate(ConnectionBase):
     pass
+
+class ConnectionUpdate(BaseModel):
+    relation: Optional[str] = None
+    strength: Optional[float] = None
 
 class Connection(ConnectionBase):
     id: int
     created_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes= True
 
 # 카드 스키마
 class CardBase(BaseModel):
@@ -75,7 +79,7 @@ class Card(CardBase):
     updated_at: Optional[datetime] = None
 
     class Config:
-        orm_mode = True
+        from_attributes= True
 
 # 복습 스키마
 class ReviewBase(BaseModel):
@@ -91,7 +95,7 @@ class Review(ReviewBase):
     created_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes= True
 
 # 노트 스키마
 class NoteBase(BaseModel):
@@ -112,7 +116,7 @@ class Note(NoteBase):
     updated_at: Optional[datetime] = None
 
     class Config:
-        orm_mode = True
+        from_attributes= True
 
 # 학습 이력 스키마
 class LearningHistoryBase(BaseModel):
@@ -127,7 +131,7 @@ class LearningHistory(LearningHistoryBase):
     created_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes= True
 
 # LLM 통합 스키마
 class LLMRequest(BaseModel):
@@ -171,7 +175,7 @@ class LearningStats(BaseModel):
     activity_stats: List[ActivityStatsItem]
 
     class Config:
-        orm_mode = True
+        from_attributes= True
 
 # 학습 활동 아이템
 class LearningActivityItem(BaseModel):
@@ -189,7 +193,7 @@ class ConceptStats(BaseModel):
     recent_activities: List[LearningActivityItem]
 
     class Config:
-        orm_mode = True
+        from_attributes= True
 
 # 일별 복습 통계 아이템
 class DailyReviewStats(BaseModel):
@@ -211,7 +215,7 @@ class ReviewStats(BaseModel):
     retention_stats: List[RetentionStatsItem]
 
     class Config:
-        orm_mode = True
+        from_attributes= True
 
 # 월별 학습 활동 아이템
 class MonthlyActivityItem(BaseModel):
@@ -231,4 +235,4 @@ class ProgressStats(BaseModel):
     monthly_activities: List[MonthlyActivityItem]
 
     class Config:
-        orm_mode = True
+        from_attributes= True
