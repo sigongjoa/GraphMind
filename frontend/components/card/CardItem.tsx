@@ -40,14 +40,8 @@ const CardItem: React.FC<CardItemProps> = ({ card, onEdit, onDelete }) => {
                 <p className="bg-blue-50 p-3 rounded mb-4">{card.explanation}</p>
               </>
             )}
-
-            {card.concept && (
-              <p className="text-sm text-gray-500 mt-2">
-                개념: {card.concept.name}
-              </p>
-            )}
             
-            <Button onClick={() => setShowAnswer(false)} className="mt-2">숨기기</Button>
+            <Button onClick={() => setShowAnswer(false)}>숨기기</Button>
           </>
         )}
       </div>
@@ -55,7 +49,14 @@ const CardItem: React.FC<CardItemProps> = ({ card, onEdit, onDelete }) => {
       {(onEdit || onDelete) && (
         <div className="border-t border-gray-200 p-4 flex justify-end space-x-2">
           {onEdit && (
-            <Button variant="outline" size="sm" onClick={() => onEdit(card.id)}>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => {
+                console.log('편집 버튼 클릭', card.id); // 디버깅용
+                onEdit(card.id);
+              }}
+            >
               편집
             </Button>
           )}
@@ -65,6 +66,7 @@ const CardItem: React.FC<CardItemProps> = ({ card, onEdit, onDelete }) => {
               size="sm" 
               className="text-red-600 hover:bg-red-50"
               onClick={() => {
+                console.log('삭제 버튼 클릭', card.id); // 디버깅용
                 if (window.confirm('이 카드를 삭제하시겠습니까?')) {
                   onDelete(card.id);
                 }
@@ -78,5 +80,6 @@ const CardItem: React.FC<CardItemProps> = ({ card, onEdit, onDelete }) => {
     </Card>
   );
 };
-
 export default CardItem;
+
+

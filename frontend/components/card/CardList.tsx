@@ -1,6 +1,7 @@
 // components/card/CardList.tsx
 import React, { useState, useEffect } from 'react';
 import CardItem from './CardItem';
+import Card from '../common/Card';
 import Button from '../common/Button';
 import Loader from '../common/Loader';
 import { cardsApi } from '../../api/client';

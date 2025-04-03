@@ -1,3 +1,4 @@
+// components/common/Card.tsx
 import React, { ReactNode } from 'react';
 
 interface CardProps {

@@ -1,0 +1,8 @@
+// next.config.js 수정
+module.exports = {
+  reactStrictMode: true,
+  webpack5: true,
+  webpack: (config) => {
+    return config;
+  },
+};

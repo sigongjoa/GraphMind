@@ -3,5 +3,6 @@
   "/_error": "pages/_error.js",
   "/_document": "pages/_document.js",
   "/graph-management": "pages/graph-management.js",
-  "/concept/[id]": "pages/concept/[id].js"
+  "/concept/[id]": "pages/concept/[id].js",
+  "/": "pages/index.js"
 }

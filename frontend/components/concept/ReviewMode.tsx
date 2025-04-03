@@ -34,20 +34,51 @@ const ReviewMode: React.FC = () => {
       // 1. 복습 예정 카드 가져오기 시도
       let cards = [];
       try {
-        // API가 구현되어 있으면 사용
-        const reviews = await reviewsApi.getDueReviews();
-        if (reviews && Array.isArray(reviews) && reviews.length > 0) {
-          // 카드 정보 가져오기
-          const cardPromises = reviews.map((review: any) => 
-            cardsApi.getById(review.card_id)
-              .catch(err => {
-                console.warn(`카드 ID ${review.card_id} 가져오기 실패:`, err);
-                return null;
-              })
-          );
-          
-          cards = (await Promise.all(cardPromises)).filter(Boolean);
+        // 개념 필터가 있는 경우 해당 개념의 모든 카드를 가져옴
+        if (conceptFilter) {
+          console.log(`개념 ID ${conceptFilter}의 모든 카드 가져오기 시도`);
+          cards = await cardsApi.getAll(conceptFilter);
+          console.log(`개념 ID ${conceptFilter}의 카드 ${cards.length}개 로드 완료`);
+        } else {
+          // 복습 예정 카드 API 호출 시도
+          try {
+            console.log('복습 예정 카드 가져오기 시도');
+            const reviews = await reviewsApi.getDueReviews();
+            
+            if (reviews && Array.isArray(reviews) && reviews.length > 0) {
+              console.log(`${reviews.length}개의 복습 예정 카드 정보 로드 완료`);
+              
+              // 카드 정보 가져오기
+              const cardPromises = reviews.map((review: any) => 
+                cardsApi.getById(review.card_id)
+                  .catch(err => {
+                    console.warn(`카드 ID ${review.card_id} 가져오기 실패:`, err);
+                    return null;
+                  })
+              );
+              
+              cards = (await Promise.all(cardPromises)).filter(Boolean);
+              console.log(`복습 예정 카드 데이터 ${cards.length}개 로드 완료`);
+            } else {
+              console.log('복습 예정 카드가 없거나 데이터 형식이 잘못됨');
+              // 복습 예정 카드가 없으면 모든 카드를 가져옴 (선택적)
+              cards = await cardsApi.getAll();
+              console.log(`모든 카드 ${cards.length}개 로드 완료`);
+            }
+          } catch (reviewErr) {
+            console.warn('복습 예정 API 호출 실패:', reviewErr);
+            console.log('모든 카드 가져오기로 대체');
+            
+            // API 실패 시 모든 카드 가져오기
+            cards = await cardsApi.getAll();
+            console.log(`모든 카드 ${cards.length}개 로드 완료`);
+          }
         }
+      } catch (cardErr) {
+        console.error('카드 데이터 로드 중 오류 발생:', cardErr);
+        setError(cardErr instanceof Error ? cardErr : new Error('카드 데이터를 로드하는 데 실패했습니다'));
+        cards = [];
+      }
       } catch (err) {
         console.warn('getDueReviews API 사용 불가:', err);
         

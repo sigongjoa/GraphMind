@@ -33,12 +33,15 @@ const ConceptDetail: React.FC<ConceptDetailProps> = ({ concept }) => {
   };
 
   const handleStartLearning = () => {
+    console.log('학습 시작: 개념 ID', concept.id); // 디버깅용
     router.push(`/learning/${concept.id}`);
   };
 
   const handleStartReview = () => {
+    console.log('복습 시작: 개념 ID', concept.id); // 디버깅용
     router.push(`/review?concept=${concept.id}`);
   };
+  
 
   return (
     <div className="space-y-8">
