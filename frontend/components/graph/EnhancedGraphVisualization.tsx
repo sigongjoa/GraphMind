@@ -42,25 +42,7 @@ interface EnhancedGraphVisualizationProps {
   searchTerm?: string;
 }
 
-const handleLinkAdd = useCallback((source: GraphNode, target: GraphNode) => {
-  // 안전한 ID 변환
-  const sourceId = typeof source.id === 'number' ? source.id : parseInt(source.id as string);
-  const targetId = typeof target.id === 'number' ? target.id : parseInt(target.id as string);
 
-  // 유효성 검사
-  if (isNaN(sourceId) || isNaN(targetId)) {
-    console.error('Invalid node IDs');
-    return;
-  }
-
-  // 링크 생성 로직
-  setNewLinkForm({
-    source: sourceId.toString(),
-    target: targetId.toString(),
-    relation: ''
-  });
-  setIsModalOpen(true);
-}, []);
 
 const EnhancedGraphVisualization: React.FC<EnhancedGraphVisualizationProps> = ({
   graphData,

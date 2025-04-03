@@ -1,4 +1,5 @@
 // frontend/components/graph/GraphManagement.tsx
+
 console.log("✅ GraphManagement 컴포넌트 렌더링 시작");
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
@@ -28,7 +29,13 @@ const GraphManagement: React.FC = () => {
 
   // 그래프 데이터 로드
   useEffect(() => {
+    alert("🔥 useEffect 진입됨");
+    console.log("🔥 useEffect 실행됨");
     console.log("🔥 useEffect 실행됨, retryCount:", retryCount);
+    console.log("🧪 isLoading:", isLoading);
+    console.log("🧪 노드 수:", graphData.nodes?.length);
+    console.log("🧪 링크 수:", graphData.links?.length);
+
     const fetchGraphData = async () => {
       try {
         setIsLoading(true);
@@ -43,6 +50,8 @@ const GraphManagement: React.FC = () => {
         console.log("✅ 개념 응답:", concepts);
         console.log("✅ 연결 응답:", connections);
         
+        
+
         // API 응답 유효성 검사
         if (!Array.isArray(concepts)) {
           throw new Error('개념 데이터가 올바른 형식이 아닙니다.');
@@ -259,6 +268,11 @@ const GraphManagement: React.FC = () => {
           <p>링크 수: {graphData.links.length}</p>
       <Header />
       <main className="container mx-auto px-4 py-8">
+      <div className="mb-4 text-sm text-gray-600 space-y-1">
+        <p>✅ 디버깅 - isLoading: {String(isLoading)}</p>
+        <p>✅ 디버깅 - 노드 수: {graphData.nodes?.length}</p>
+        <p>✅ 디버깅 - 링크 수: {graphData.links?.length}</p>
+      </div>
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 space-y-4 md:space-y-0">
           <h1 className="text-2xl font-bold">개념 그래프 관리</h1>
           
@@ -338,7 +352,7 @@ const GraphManagement: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* 그래프 영역 */}
           <div className="lg:col-span-3 bg-white rounded-lg shadow-md overflow-hidden">
-            {isLoading && graphData.nodes.length === 0 ? (
+            {isLoading ? (
               <div className="flex justify-center items-center h-[600px]">
                 <Loader size="lg" />
               </div>
@@ -352,29 +366,38 @@ const GraphManagement: React.FC = () => {
                   첫 개념 추가하기
                 </Button>
               </div>
+            ) : graphData.links.length === 0 ? (
+              <div className="flex flex-col justify-center items-center h-[600px] p-4 text-center">
+                <p className="text-lg text-gray-500 mb-4">개념은 있지만 연결된 링크가 없습니다.</p>
+                <Button onClick={() => {
+                  setModalType('addLink');
+                  setIsModalOpen(true);
+                }}>
+                  첫 연결 추가하기
+                </Button>
+              </div>
             ) : (
-                <ErrorBoundary 
-                  fallback={
-                    <div className="text-red-500">
-                      그래프 시각화 중 오류가 발생했습니다.
-                    </div>
-                  }
-                >
-                  <EnhancedGraphVisualization 
-                    graphData={graphData}
-                    onNodeClick={handleNodeClick}
-                    onNodeAdd={handleNodeAdd}
-                    onLinkAdd={handleLinkAdd}
-                    onNodeDragEnd={handleNodeDragEnd}
-                    editable={true}
-                    layoutType={layoutType}
-                    filter={filter}
-                    searchTerm={searchTerm}
-                  />
-                </ErrorBoundary>
+              <ErrorBoundary 
+                fallback={
+                  <div className="text-red-500">
+                    그래프 시각화 중 오류가 발생했습니다.
+                  </div>
+                }
+              >
+                <EnhancedGraphVisualization 
+                  graphData={graphData}
+                  onNodeClick={handleNodeClick}
+                  onNodeAdd={handleNodeAdd}
+                  onLinkAdd={handleLinkAdd}
+                  onNodeDragEnd={handleNodeDragEnd}
+                  editable={true}
+                  layoutType={layoutType}
+                  filter={filter}
+                  searchTerm={searchTerm}
+                />
+              </ErrorBoundary>
             )}
-          </div>
-          
+          </div>          
           {/* 선택된 개념 정보 패널 */}
           <div className="bg-white rounded-lg shadow-md p-4">
             <h2 className="text-lg font-medium mb-4">개념 정보</h2>
