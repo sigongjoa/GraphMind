@@ -3,5 +3,7 @@
   "/_error": "pages/_error.js",
   "/_document": "pages/_document.js",
   "/graph-management": "pages/graph-management.js",
-  "/": "pages/index.js"
+  "/review": "pages/review.js",
+  "/": "pages/index.js",
+  "/stats": "pages/stats.js"
 }

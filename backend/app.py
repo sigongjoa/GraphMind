@@ -6,7 +6,10 @@ import models
 import schemas
 import crud
 from database import SessionLocal, engine
-from routers import statistics, reviews, connections
+
+from routers.statistics import router as statistics_router
+from routers.reviews import router as reviews_router
+from routers.connections import router as connections_router
 
 # DB 테이블 생성
 models.Base.metadata.create_all(bind=engine)
@@ -191,7 +194,9 @@ app.add_middleware(
 )
 
 # ✅ 라우터 등록 (prefix="/api")
-app.include_router(router, prefix="/api")
-app.include_router(connections.router, prefix="/api/connections")
-app.include_router(statistics.router, prefix="/api/stats")
-app.include_router(reviews.router, prefix="/api/reviews")
+# ✅ 라우터 등록 (prefix="/api")
+app.include_router(router, prefix="/api")  # 이건 그대로 (직접 정의한 router)
+app.include_router(connections_router, prefix="/api/connections")
+app.include_router(statistics_router, prefix="/api/stats")
+app.include_router(reviews_router, prefix="/api/reviews")
+

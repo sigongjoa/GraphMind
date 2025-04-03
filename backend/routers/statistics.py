@@ -6,6 +6,14 @@ from database import get_db  # 이게 backend/database.py에 있다면 상대경
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
+@router.get("/progress-stats")
+def get_progress_stats(db: Session = Depends(get_db)):
+    return {"message": "progress stats example"}
+
+@router.get("/review-stats")
+def get_review_stats(db: Session = Depends(get_db)):
+    return {"message": "review stats example"}
+
 @router.get("/learning-stats")
 def get_learning_stats(db: Session = Depends(get_db)):
     try:
