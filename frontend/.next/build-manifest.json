@@ -25,11 +25,6 @@
       "static/chunks/main.js",
       "static/chunks/pages/_error.js"
     ],
-    "/concept/[id]": [
-      "static/chunks/webpack.js",
-      "static/chunks/main.js",
-      "static/chunks/pages/concept/[id].js"
-    ],
     "/learning/[id]": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",

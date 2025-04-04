@@ -6,7 +6,7 @@ import Button from '../common/Button';
 import Loader from '../common/Loader';
 import Modal from '../common/Modal';
 import ErrorBoundary from '../common/ErrorBoundary';
-import LLMInteraction from './LLMInteraction';
+import LLMInteraction from './LLMInteraction'; // 개선된 컴포넌트 사용
 import LLMStatus from './LLMStatus';
 import { conceptsApi } from '../../api/client';
 import llmApi from '../../api/llm_client';
@@ -238,12 +238,15 @@ const LearningMode: React.FC = () => {
                 </Card>
                 
                 <ErrorBoundary>
-                  <Card className="h-[500px]">
-                    <LLMInteraction 
-                      messages={messages} 
-                      onSendMessage={handleSendMessage} 
-                      isLlmOffline={llmStatus.status !== 'online'}
-                    />
+                  {/* 명시적 높이 설정으로 스크롤 작동 보장 */}
+                  <Card className="h-[500px] overflow-y-auto">
+                    <div className="h-full">
+                      <LLMInteraction 
+                        messages={messages} 
+                        onSendMessage={handleSendMessage} 
+                        isLlmOffline={llmStatus.status !== 'online'}
+                      />
+                    </div>
                   </Card>
                 </ErrorBoundary>
               </div>

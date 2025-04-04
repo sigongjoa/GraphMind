@@ -7,7 +7,7 @@ const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 30000, // LLM 응답이 오래 걸릴 수 있으므로 30초로 설정
+  timeout: 90000, // LLM 응답이 오래 걸릴 수 있으므로 30초로 설정
 });
 
 // 에러 인터셉터 추가
@@ -112,6 +112,7 @@ export const getResponse = async (message: string, concept: string) => {
     return response.data;
   } catch (error) {
     console.error('대화형 응답 요청 실패:', error);
+    
     
     // 간단한 목업 응답 생성
     return {
