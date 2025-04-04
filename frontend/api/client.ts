@@ -1,5 +1,8 @@
 // frontend/api/client.ts
 import axios from 'axios';
+import llmApi from './llm_client';
+
+export { llmApi };
 
 // API 기본 설정
 const apiClient = axios.create({

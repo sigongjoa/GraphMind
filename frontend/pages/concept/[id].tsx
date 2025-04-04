@@ -32,7 +32,6 @@ export default function ConceptPage() {
       <Head>
         <title>{concept.name} - 개념 그래프 학습 시스템</title>
       </Head>
-      <Header />
       <main className="max-w-7xl mx-auto px-4 py-6 space-y-8">
         <ConceptDetail concept={concept} />
       </main>

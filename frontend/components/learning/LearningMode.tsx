@@ -6,7 +6,8 @@ import Loader from '../common/Loader';
 import Modal from '../common/Modal';
 import ErrorBoundary from '../common/ErrorBoundary';
 import LLMInteraction from './LLMInteraction';
-import { conceptsApi, llmApi } from '../../api/client';
+import { conceptsApi } from '../../api/client';
+import llmApi from '../../api/llm_client';
 import { useRouter } from 'next/router';
 
 const LearningMode: React.FC = () => {

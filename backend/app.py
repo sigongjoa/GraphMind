@@ -10,6 +10,7 @@ from database import SessionLocal, engine
 from routers.statistics import router as statistics_router
 from routers.reviews import router as reviews_router
 from routers.connections import router as connections_router
+from routers import llm
 
 # DB 테이블 생성
 models.Base.metadata.create_all(bind=engine)

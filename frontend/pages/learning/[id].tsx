@@ -1,26 +1,23 @@
-// pages/graph.tsx - 개념 그래프 페이지
 import React from 'react';
 import Head from 'next/head';
 import dynamic from 'next/dynamic';
+import { useRouter } from 'next/router';
+import UpdatedLearningMode from '@/components/learning/UpdatedLearningMode';
 import Header from '@/components/common/Header';
+import LearningMode from '@/components/learning/LearningMode';
 
-// SSR 비활성화로 그래프 컴포넌트 임포트
-const ConceptGraph = dynamic(
-  () => import('@/components/graph/ConceptGraph'),
-  { ssr: false }
-);
+export default function LearningPage() {
+  const router = useRouter();
+  const { id } = router.query;
+  const conceptId = typeof id === 'string' ? parseInt(id, 10) : undefined;
 
-export default function GraphPage() {
   return (
     <>
       <Head>
-        <title>개념 그래프 - 개념 그래프 학습 시스템</title>
-        <meta name="description" content="개념 간 연결 관계를 그래프로 시각화" />
+        <title>학습 모드 - 개념 그래프 학습 시스템</title>
+        <meta name="description" content="AI와의 상호작용을 통한 개념 학습" />
       </Head>
       
-      <Header />
-      
-      <ConceptGraph />
+      <LearningMode />
     </>
   );
-}
