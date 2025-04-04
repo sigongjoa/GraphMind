@@ -112,8 +112,10 @@ ReviewProgress 컴포넌트로 복습 진행 상황 표시
 
 // 수정 후
 <Button onClick={() => setShowAnswer(true)}>정답 보기</Button>
+```
 
 ---
+
 1. 데이터 로딩/에러 처리 일관성 개선
 
 useDataFetch 훅을 구현하여 모든 컴포넌트에서 일관된 방식으로 데이터를 가져올 수 있게 되었습니다.
