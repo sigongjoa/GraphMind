@@ -6,7 +6,8 @@ from database import get_db
 from sqlalchemy.orm import Session
 import schemas
 from services.llm_service import LLMServiceFactory
-from config import settings
+from backend.config import settings
+
 
 # 로거 설정
 logger = logging.getLogger(__name__)
@@ -47,6 +48,9 @@ def explain_concept(
     """
     개념에 대한 설명을 제공합니다.
     """
+    from config import settings
+    print("🔥 DEBUG - USE_MOCK_LLM =", settings.USE_MOCK_LLM)
+    print("🔥 DEBUG - LLM_API_URL =", settings.LLM_API_URL)
     try:
         result = llm_service.explain_concept(request.concept, request.context)
         return result

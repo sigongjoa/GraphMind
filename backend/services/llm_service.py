@@ -24,26 +24,24 @@ class LLMService:
     def _generate_completion(self, prompt: str, temperature: float = 0.7, max_tokens: int = 1024) -> str:
         """
         LLM에 프롬프트를 전송하고 응답을 받습니다.
-        
-        Args:
-            prompt: LLM에 전송할 프롬프트
-            temperature: 응답 다양성 조절 (0-1)
-            max_tokens: 최대 생성 토큰 수
-            
-        Returns:
-            str: LLM의 응답
         """
         try:
+            # 올바른 엔드포인트 사용하기
+            endpoint = f"{self.api_url}/chat/completions"
+            logger.info(f"LLM API 호출: {endpoint}")
+            
             response = requests.post(
-                f"{self.api_url}/chat/completions",
+                endpoint,
                 json={
-                    "model": "local-model",  # LM Studio는 이 값을 무시하고 현재 로드된 모델 사용
+                    "model": "local-model",
                     "messages": [{"role": "user", "content": prompt}],
                     "temperature": temperature,
                     "max_tokens": max_tokens
                 },
-                timeout=60  # LLM 응답은 시간이 걸릴 수 있으므로 타임아웃을 넉넉히 설정
+                timeout=60
             )
+            
+            logger.info(f"응답 상태 코드: {response.status_code}")
             
             if response.status_code == 200:
                 result = response.json()
@@ -51,11 +49,13 @@ class LLMService:
             else:
                 error_msg = f"LLM API 오류: {response.status_code}, {response.text}"
                 logger.error(error_msg)
-                return f"오류 발생: {error_msg}"
-                
+                return f"API 오류: {error_msg}"
+                    
         except requests.exceptions.RequestException as e:
             logger.error(f"LLM 요청 중 예외 발생: {e}")
-            return "LLM 서비스에 연결할 수 없습니다. LM Studio가 실행 중인지 확인하세요."
+            return "LLM 서비스에 연결할 수 없습니다."
+
+
     
     def explain_concept(self, concept_name: str, context: Optional[str] = None) -> Dict[str, str]:
         """

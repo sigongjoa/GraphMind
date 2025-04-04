@@ -10,7 +10,7 @@ from database import SessionLocal, engine
 from routers.statistics import router as statistics_router
 from routers.reviews import router as reviews_router
 from routers.connections import router as connections_router
-from routers import llm
+from routers.llm_service import router as llm_router
 
 # DB 테이블 생성
 models.Base.metadata.create_all(bind=engine)
@@ -200,4 +200,5 @@ app.include_router(router, prefix="/api")  # 이건 그대로 (직접 정의한 
 app.include_router(connections_router, prefix="/api/connections")
 app.include_router(statistics_router, prefix="/api/stats")
 app.include_router(reviews_router, prefix="/api/reviews")
+app.include_router(llm_router, prefix="/api/llm")
 

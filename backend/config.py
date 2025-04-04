@@ -1,5 +1,5 @@
 import os
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     """
@@ -25,9 +25,3 @@ class Settings(BaseSettings):
 
 # 설정 인스턴스 생성
 settings = Settings()
-
-import logging
-
-logging.basicConfig(filename="debug.log", level=logging.INFO)
-logging.info(f"USE_MOCK_LLM = {settings.USE_MOCK_LLM}")
-logging.info(f"LLM_API_URL = {settings.LLM_API_URL}")
