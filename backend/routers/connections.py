@@ -1,4 +1,3 @@
-# backend/routers/connections.py
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Optional
@@ -8,6 +7,7 @@ import models
 import schemas
 import crud
 
+# APIRouter 생성
 router = APIRouter()
 
 @router.post("/", response_model=schemas.Connection)
@@ -45,10 +45,10 @@ def create_connection(
 
 @router.get("/", response_model=List[schemas.Connection])
 def read_connections(
-    skip: int = 0, 
-    limit: int = 100, 
     source_id: Optional[int] = None,
     target_id: Optional[int] = None,
+    skip: int = 0, 
+    limit: int = 100, 
     db: Session = Depends(get_db)
 ):
     """
@@ -127,3 +127,18 @@ def delete_connection(connection_id: int, db: Session = Depends(get_db)):
     db.commit()
     
     return {"message": "Connection deleted successfully"}
+
+@router.get("/concept/{concept_id}", response_model=List[schemas.Connection])
+def get_connections_by_concept(concept_id: int, db: Session = Depends(get_db)):
+    """
+    특정 개념과 관련된 모든 연결을 가져옵니다.
+    """
+    # 개념이 존재하는지 확인
+    concept = crud.get_concept(db, concept_id)
+    if not concept:
+        raise HTTPException(status_code=404, detail=f"Concept with id {concept_id} not found")
+    
+    # 개념이 소스 또는 타겟인 모든 연결 가져오기
+    connections = crud.get_connections_by_concept(db, concept_id)
+    
+    return connections

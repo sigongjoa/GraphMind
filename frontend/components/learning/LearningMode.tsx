@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/router';
 import Header from '../common/Header';
 import Card from '../common/Card';
 import Button from '../common/Button';
@@ -6,9 +7,9 @@ import Loader from '../common/Loader';
 import Modal from '../common/Modal';
 import ErrorBoundary from '../common/ErrorBoundary';
 import LLMInteraction from './LLMInteraction';
+import LLMStatus from './LLMStatus';
 import { conceptsApi } from '../../api/client';
 import llmApi from '../../api/llm_client';
-import { useRouter } from 'next/router';
 
 const LearningMode: React.FC = () => {
   const router = useRouter();
@@ -22,7 +23,35 @@ const LearningMode: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [generatedQuestion, setGeneratedQuestion] = useState<any>(null);
   const [error, setError] = useState<Error | null>(null);
+  const [llmStatus, setLlmStatus] = useState<{ status: string; message?: string }>({ 
+    status: 'unknown' 
+  });
+  const [isCheckingLlm, setIsCheckingLlm] = useState(true);
 
+  // LLM 상태 확인 함수
+  const checkLlmStatus = useCallback(async () => {
+    try {
+      setIsCheckingLlm(true);
+      const status = await llmApi.checkHealth();
+      console.log("LLM 상태 확인 결과:", status);
+      setLlmStatus(status);
+    } catch (err) {
+      console.error('LLM 상태 확인 중 오류:', err);
+      setLlmStatus({ 
+        status: 'offline', 
+        message: '연결할 수 없습니다'
+      });
+    } finally {
+      setIsCheckingLlm(false);
+    }
+  }, []);
+
+  // 컴포넌트 마운트시 LLM 상태 확인
+  useEffect(() => {
+    checkLlmStatus();
+  }, [checkLlmStatus]);
+
+  // 개념 데이터 가져오기
   useEffect(() => {
     if (!conceptId) return;
 
@@ -34,10 +63,6 @@ const LearningMode: React.FC = () => {
         const conceptData = await conceptsApi.getById(conceptId);
         setConcept(conceptData);
         
-        // 관련 개념 추천 받기
-        const suggestedConcepts = await llmApi.suggestConcepts(conceptData.name);
-        setRelatedConcepts(suggestedConcepts.concepts);
-        
         // 초기 메시지 설정
         setMessages([
           {
@@ -45,6 +70,21 @@ const LearningMode: React.FC = () => {
             content: `안녕하세요! "${conceptData.name}" 개념에 대해 학습해보겠습니다. 어떤 것이 궁금하신가요?`
           }
         ]);
+        
+        // 관련 개념 추천 받기 (LLM 상태가 온라인일 때만)
+        if (llmStatus.status === 'online') {
+          try {
+            const suggestedConcepts = await llmApi.suggestConcepts(conceptData.name);
+            setRelatedConcepts(suggestedConcepts.concepts || []);
+          } catch (err) {
+            console.warn('관련 개념 추천 실패:', err);
+            // 기존 관련 개념 사용
+            setRelatedConcepts(conceptData.related_concepts || []);
+          }
+        } else {
+          // LLM 오프라인 - 기존 관련 개념 사용
+          setRelatedConcepts(conceptData.related_concepts || []);
+        }
         
         setError(null);
       } catch (err) {
@@ -56,8 +96,9 @@ const LearningMode: React.FC = () => {
     };
 
     fetchConceptData();
-  }, [conceptId]);
+  }, [conceptId, llmStatus.status]);
 
+  // 메시지 전송 처리
   const handleSendMessage = async (message: string) => {
     if (!message.trim() || !concept) return;
     
@@ -69,8 +110,18 @@ const LearningMode: React.FC = () => {
     setMessages(updatedMessages);
     
     try {
-      // LLM 응답 가져오기
-      const response = await llmApi.explainConcept(concept.name, message);
+      // LLM 응답 요청
+      let response;
+      
+      if (llmStatus.status === 'online') {
+        // LLM 서비스 사용
+        response = await llmApi.getResponse(message, concept.name);
+      } else {
+        // 목업 응답 사용
+        response = {
+          response: `죄송합니다. 현재 LLM 서비스가 ${llmStatus.status === 'offline' ? '오프라인' : '응답하지 않는'} 상태입니다. 나중에 다시 시도해 주세요.`
+        };
+      }
       
       // LLM 응답 추가
       setMessages([
@@ -86,12 +137,26 @@ const LearningMode: React.FC = () => {
     }
   };
 
-  const handleGenerateQuestion = async () => {
+  // 문제 생성 처리
+  const handleGenerateQuestion = async (difficulty: number = 1) => {
     if (!concept) return;
     
     try {
       setIsLoading(true);
-      const question = await llmApi.generateQuestion(concept.name);
+      
+      let question;
+      if (llmStatus.status === 'online') {
+        // LLM 서비스 사용
+        question = await llmApi.generateQuestion(concept.name, difficulty);
+      } else {
+        // 목업 응답 사용
+        question = {
+          question: `${concept.name}의 주요 특징은 무엇인가요?`,
+          answer: `${concept.name}의 주요 특징은 [특징 1], [특징 2], [특징 3] 등이 있습니다.`,
+          explanation: `이 문제는 ${concept.name}의 기본적인 이해를 테스트합니다. LLM 서비스가 오프라인 상태이므로 상세한 응답을 제공할 수 없습니다.`
+        };
+      }
+      
       setGeneratedQuestion(question);
       setIsModalOpen(true);
     } catch (err) {
@@ -100,6 +165,11 @@ const LearningMode: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // LLM 서비스 재연결 처리
+  const handleRetryLlmConnection = async () => {
+    await checkLlmStatus();
   };
 
   if (error) {
@@ -143,13 +213,22 @@ const LearningMode: React.FC = () => {
                   개념 상세
                 </Button>
                 <Button 
-                  onClick={handleGenerateQuestion}
+                  onClick={() => handleGenerateQuestion()}
                   isLoading={isLoading}
+                  disabled={isLoading || llmStatus.status !== 'online'}
                 >
                   문제 생성
                 </Button>
               </div>
             </div>
+            
+            {/* LLM 상태 표시 */}
+            <LLMStatus 
+              status={llmStatus}
+              isChecking={isCheckingLlm}
+              onRetry={handleRetryLlmConnection}
+              className="mb-4"
+            />
             
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
               <div className="lg:col-span-3">
@@ -163,6 +242,7 @@ const LearningMode: React.FC = () => {
                     <LLMInteraction 
                       messages={messages} 
                       onSendMessage={handleSendMessage} 
+                      isLlmOffline={llmStatus.status !== 'online'}
                     />
                   </Card>
                 </ErrorBoundary>

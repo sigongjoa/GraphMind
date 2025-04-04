@@ -1,7 +1,5 @@
 # routers/__init__.py
-# 기존 코드 (오류 발생)
-
-from backend.config import settings
-from routers.llm_service import router as llm_router
-
-__all__ = ["llm_router"]
+# 라우터 모듈 가져오기
+from . import llm
+from . import reviews
+from . import connections

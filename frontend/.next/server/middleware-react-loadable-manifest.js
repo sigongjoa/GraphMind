@@ -1,1 +1,1 @@
-self.__REACT_LOADABLE_MANIFEST={"..\\components\\graph\\EnhancedGraphVisualization.tsx -> react-force-graph-2d":{"id":"..\\components\\graph\\EnhancedGraphVisualization.tsx -> react-force-graph-2d","files":["static/chunks/node_modules_react-force-graph-2d_dist_react-force-graph-2d_mjs.js"]},"graph-management.tsx -> ../components/graph/GraphManagement":{"id":"graph-management.tsx -> ../components/graph/GraphManagement","files":["static/chunks/components_graph_GraphManagement_tsx.js"]}}
+self.__REACT_LOADABLE_MANIFEST={}
